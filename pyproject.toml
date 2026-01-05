@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "signalflow-nn"
+version = "0.1.0"
+description = "Neural network extension for signalflow (torch/lightning)."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "signalflow-trading>=0.1.0",
+  "torch>=2.2",
+  "lightning>=2.2",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["signalflow.nn*"]
