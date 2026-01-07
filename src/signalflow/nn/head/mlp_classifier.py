@@ -1,10 +1,10 @@
 import torch
 import torch.nn as nn
-from signalflow.core import sf_component
+from signalflow.core import sf_component, SfTorchModuleMixin
 import optuna
 
-@sf_component(name="head/mlp_classifier")
-class MLPClassifierHead(nn.Module):
+@sf_component(name="head/cls/mlp")
+class MLPClassifierHead(nn.Module, SfTorchModuleMixin):
     """MLP-based classification head"""
     
     def __init__(

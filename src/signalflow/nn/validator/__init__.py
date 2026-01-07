@@ -1,1 +1,5 @@
-from signalflow.nn.validator.base import BaseSignalFlowValidator
+from signalflow.nn.validator.temporal_validator import TemporalValidator
+
+__all__ = [
+    "TemporalValidator",
+]

@@ -3,8 +3,6 @@ import torch
 import torch.nn as nn
 import lightning as L
 from signalflow.core import SfTorchModuleMixin, sf_component
-from signalflow.nn.layer.encoder import TemporalEncoder
-from signalflow.nn.head.classifier import MLPClassifierHead
 import optuna
 
 @sf_component(name="temporal_classifier")
@@ -19,8 +17,8 @@ class TemporalClassificator(L.LightningModule, SfTorchModuleMixin):
     
     def __init__(
         self,
-        encoder: TemporalEncoder,
-        head: MLPClassifierHead | None = None,
+        encoder: nn.Module,
+        head: nn.Module | None = None,
         num_classes: int = 3,
         learning_rate: float = 1e-3,
         weight_decay: float = 1e-5,
