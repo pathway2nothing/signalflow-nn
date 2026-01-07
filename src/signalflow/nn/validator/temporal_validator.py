@@ -12,6 +12,7 @@ from typing import Literal, Optional, Any
 import torch
 import torch.nn as nn
 import lightning as L
+from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 import polars as pl
 
 from signalflow.core import sf_component, Signals
@@ -193,7 +194,7 @@ class TemporalValidator(SignalValidator):
         
         # Callbacks
         callbacks = [
-            L.callbacks.EarlyStopping(
+            EarlyStopping(
                 monitor="val_loss",
                 patience=self.early_stopping_patience,
                 mode="min",
@@ -202,7 +203,7 @@ class TemporalValidator(SignalValidator):
         
         if log_dir:
             callbacks.append(
-                L.callbacks.ModelCheckpoint(
+                ModelCheckpoint(
                     monitor="val_loss",
                     dirpath=log_dir / "checkpoints",
                     filename="best-{epoch:02d}-{val_loss:.4f}",
