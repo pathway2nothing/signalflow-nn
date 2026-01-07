@@ -341,7 +341,6 @@ class TemporalClassificator(L.LightningModule, SfTorchModuleMixin):
                 mode="min",
                 factor=config.scheduler_factor,
                 patience=config.scheduler_patience,
-                verbose=True,
             )
             return {
                 "optimizer": optimizer,
