@@ -201,16 +201,16 @@ class TemporalValidator(SignalValidator):
             ),
         ]
         
+        checkpoint_callback = None
         if log_dir:
-            callbacks.append(
-                ModelCheckpoint(
-                    monitor="val_loss",
-                    dirpath=log_dir / "checkpoints",
-                    filename="best-{epoch:02d}-{val_loss:.4f}",
-                    save_top_k=1,
-                    mode="min",
-                )
+            checkpoint_callback = ModelCheckpoint(
+                monitor="val_loss",
+                dirpath=log_dir / "checkpoints",
+                filename="best-{epoch:02d}-{val_loss:.4f}",
+                save_top_k=1,
+                mode="min",
             )
+            callbacks.append(checkpoint_callback)
         
         # Trainer
         self.trainer = L.Trainer(
@@ -226,9 +226,9 @@ class TemporalValidator(SignalValidator):
         self.trainer.fit(self.model, datamodule)
         
         # Load best checkpoint if available
-        if log_dir and callbacks[-1].best_model_path:
+        if checkpoint_callback and checkpoint_callback.best_model_path:
             self.model = TemporalClassificator.load_from_checkpoint(
-                callbacks[-1].best_model_path
+                checkpoint_callback.best_model_path
             )
         
         return self
