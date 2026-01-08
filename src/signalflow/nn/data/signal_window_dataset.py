@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Literal, Optional
+from typing import Optional
 
 import numpy as np
 import polars as pl
@@ -13,27 +12,18 @@ class SignalWindowDataset(Dataset):
     """Dataset that creates windows ONLY at signal timestamps.
     
     For each signal at time t for pair P, creates a window from P's history:
-    [t-window_size+1, t] features from pair P only.
-    
-    This is the core dataset for training signal validators.
+    [t - span, t] features from pair P only, sampled with a stride.
     
     Args:
         features_df: DataFrame with [pair, timestamp, feature_1, ...].
         signals_df: DataFrame with [pair, timestamp, label] - ONLY signal rows.
-        window_size: Number of timesteps in each window.
+        window_size: Number of timesteps in each window (output size).
+        window_timeframe: Stride for sampling history (dilation). 
+                          1 = consecutive rows, 5 = every 5th row.
         feature_cols: List of feature columns (auto-detected if None).
         pair_col: Name of pair column.
         ts_col: Name of timestamp column.
         label_col: Name of label column.
-        
-    Example:
-        >>> # Signal for BTCUSDT at 10:30 -> window from BTCUSDT [10:01-10:30]
-        >>> # Signal for ETHUSDT at 10:30 -> window from ETHUSDT [10:01-10:30]
-        >>> dataset = SignalWindowDataset(
-        ...     features_df=all_features,
-        ...     signals_df=labeled_signals,
-        ...     window_size=30,
-        ... )
     """
     
     def __init__(
@@ -41,17 +31,18 @@ class SignalWindowDataset(Dataset):
         features_df: pl.DataFrame,
         signals_df: pl.DataFrame,
         window_size: int = 60,
+        window_timeframe: int = 1,
         feature_cols: Optional[list[str]] = None,
         pair_col: str = "pair",
         ts_col: str = "timestamp",
         label_col: str = "label",
     ):
         self.window_size = window_size
+        self.window_timeframe = window_timeframe
         self.pair_col = pair_col
         self.ts_col = ts_col
         self.label_col = label_col
         
-        # Determine feature columns
         exclude_cols = {pair_col, ts_col, label_col, "signal", "signal_type"}
         if feature_cols is not None:
             self.feature_cols = feature_cols
@@ -62,7 +53,6 @@ class SignalWindowDataset(Dataset):
             ]
         
         self._build_pair_data(features_df)
-        
         self._build_signal_windows(signals_df)
     
     def _build_pair_data(self, features_df: pl.DataFrame):
@@ -99,9 +89,9 @@ class SignalWindowDataset(Dataset):
             }
     
     def _build_signal_windows(self, signals_df: pl.DataFrame):
-        """Build windows only for signal timestamps, using same-pair history."""
+        """Build windows only for signal timestamps using dilated history."""
         self.windows = []
-        self.valid_signal_indices = []  
+        self.valid_signal_indices = []
         
         if self.ts_col in signals_df.columns:
             ts_dtype = signals_df.schema.get(self.ts_col)
@@ -114,12 +104,12 @@ class SignalWindowDataset(Dataset):
         skipped_no_timestamp = 0
         skipped_insufficient = 0
         
-        debug_shown = False
+        required_span = (self.window_size - 1) * self.window_timeframe
         
         for signal_row_idx, row in enumerate(signals_df.iter_rows(named=True)):
             pair = row[self.pair_col]
             ts = row[self.ts_col]
-            label = row[self.label_col]
+            label = row[self.label_col] if self.label_col in row else 0
             
             if pair not in self.pair_data:
                 skipped_unknown_pair += 1
@@ -129,30 +119,24 @@ class SignalWindowDataset(Dataset):
             
             if ts not in pair_info["ts_to_idx"]:
                 skipped_no_timestamp += 1
-                if not debug_shown and signal_row_idx < 5:
-                    sample_feature_ts = list(pair_info["ts_to_idx"].keys())[0] if pair_info["ts_to_idx"] else None
-                    print(f"  DEBUG: Signal ts type={type(ts)}, value={ts}")
-                    print(f"  DEBUG: Feature ts type={type(sample_feature_ts)}, value={sample_feature_ts}")
-                    debug_shown = True
                 continue
             
             signal_idx = pair_info["ts_to_idx"][ts]
             
-            if signal_idx < self.window_size - 1:
+            if signal_idx < required_span:
                 skipped_insufficient += 1
                 continue
             
-            window_start = signal_idx - self.window_size + 1
-            window_end = signal_idx + 1  # exclusive
+            window_start = signal_idx - required_span
+            window_end = signal_idx + 1
             
             self.windows.append((pair, window_start, window_end, label))
             self.valid_signal_indices.append(signal_row_idx)
         
-        total_skipped = skipped_unknown_pair + skipped_no_timestamp + skipped_insufficient
         print(f"SignalWindowDataset: {len(self.windows)} valid windows from {signals_df.height} signals")
-        if total_skipped > 0:
+        if (skipped_unknown_pair + skipped_no_timestamp + skipped_insufficient) > 0:
             print(f"  Skipped: {skipped_unknown_pair} (unknown pair), "
-                  f"{skipped_no_timestamp} (timestamp not found), "
+                  f"{skipped_no_timestamp} (no timestamp), "
                   f"{skipped_insufficient} (insufficient history)")
     
     def __len__(self) -> int:
@@ -162,10 +146,11 @@ class SignalWindowDataset(Dataset):
         pair, window_start, window_end, label = self.windows[idx]
         
         feature_matrix = self.pair_data[pair]["feature_matrix"]
-        window = feature_matrix[window_start:window_end]  
+        
+        # Apply stride slice: start:stop:step
+        window = feature_matrix[window_start:window_end:self.window_timeframe]
         
         return (
             torch.tensor(window, dtype=torch.float32),
             torch.tensor(label, dtype=torch.long),
         )
-

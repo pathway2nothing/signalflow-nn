@@ -15,26 +15,13 @@ from signalflow.nn.data.ts_preprocessor import TimeSeriesPreprocessor
 class SignalDataModule(L.LightningDataModule):
     """
     Lightning DataModule that handles Time-Series Scaling and Signal Splitting.
-
-    Workflow:
-    1. Splits signals into Train/Val/Test (Temporal split preferred).
-    2. Fits the TimeSeriesPreprocessor ONLY on the feature history corresponding 
-       to the Train split (to prevent look-ahead bias).
-    3. Transforms the entire feature set using the fitted preprocessor.
-    4. Creates SignalWindowDatasets using the scaled features.
-
-    Args:
-        features_df: Raw feature history (unscaled).
-        signals_df: Labeled signals.
-        preprocessor: Instance of TimeSeriesPreprocessor (unfitted).
-        window_size: Lookback window size.
-        split_strategy: 'temporal' (recommended) | 'random' | 'pair'.
     """
     
     features_df: pl.DataFrame
     signals_df: pl.DataFrame
     preprocessor: TimeSeriesPreprocessor
     window_size: int = 60
+    window_timeframe: int = 1
     train_val_test_split: tuple[float, float, float] = (0.7, 0.15, 0.15)
     split_strategy: Literal["temporal", "random", "pair"] = "temporal"
     batch_size: int = 32
@@ -57,9 +44,6 @@ class SignalDataModule(L.LightningDataModule):
             self.feature_cols = [c for c in self.features_df.columns if c not in exclude]
 
     def setup(self, stage: Optional[str] = None):
-        """
-        Orchestrates the split -> fit -> transform pipeline.
-        """
         if self.train_signals is not None:
             return
 
@@ -84,9 +68,7 @@ class SignalDataModule(L.LightningDataModule):
                 pl.col(self.ts_col) <= last_train_ts
             )
         else:
-            print("[SignalDataModule] Warning: Non-temporal split used. "
-                  "Fitting on features corresponding to train signal pairs/times.")
-            
+            print("[SignalDataModule] Warning: Non-temporal split used. Fitting on full train pairs.")
             train_features_subset = self.features_df 
 
         print("[SignalDataModule] Fitting scaler...")
@@ -130,14 +112,14 @@ class SignalDataModule(L.LightningDataModule):
         )
 
     def _create_dataset(self, signals: pl.DataFrame) -> SignalWindowDataset:
-        """Helper to create dataset instance using PROCESSED features."""
         if self.processed_features is None:
-            raise RuntimeError("features have not been processed. Run setup() first.")
+            raise RuntimeError("Features have not been processed. Run setup() first.")
             
         return SignalWindowDataset(
             features_df=self.processed_features,
             signals_df=signals,
             window_size=self.window_size,
+            window_timeframe=self.window_timeframe,
             feature_cols=self.feature_cols,
             pair_col=self.pair_col,
             ts_col=self.ts_col,
@@ -183,7 +165,6 @@ class SignalDataModule(L.LightningDataModule):
         self.test_signals = self.signals_df.filter(pl.col(self.pair_col).is_in(test_pairs))
 
     def save_preprocessor(self, path: str):
-        """Export the fitted preprocessor for inference usage."""
         if not os.path.exists(os.path.dirname(path)):
             os.makedirs(os.path.dirname(path), exist_ok=True)
         self.preprocessor.save(path)
