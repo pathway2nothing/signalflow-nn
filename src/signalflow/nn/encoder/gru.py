@@ -77,7 +77,6 @@ class GRUEncoder(nn.Module, SfTorchModuleMixin):
         gru_out, h_n = self.gru(x)
         
         if self.bidirectional:
-            # Concatenate forward and backward final hidden states
             forward = h_n[-2, :, :]
             backward = h_n[-1, :, :]
             out = torch.cat([forward, backward], dim=1)

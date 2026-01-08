@@ -242,6 +242,7 @@ class TemporalValidator(SignalValidator):
         """Add validation probabilities to signals.
         
         Runs inference on each signal and adds probability columns.
+        Signals without sufficient history will have NaN probabilities.
         
         Args:
             signals: Input Signals container.
@@ -263,21 +264,38 @@ class TemporalValidator(SignalValidator):
         
         self.model.eval()
         signals_df = signals.value
+        n_signals = signals_df.height
         
         # Add dummy label for dataset compatibility
         if "label" not in signals_df.columns:
-            signals_df = signals_df.with_columns(pl.lit(0).alias("label"))
+            signals_df_with_label = signals_df.with_columns(pl.lit(0).alias("label"))
+        else:
+            signals_df_with_label = signals_df
         
         # Create dataset
         dataset = SignalWindowDataset(
             features_df=features,
-            signals_df=signals_df,
+            signals_df=signals_df_with_label,
             window_size=self.window_size,
             feature_cols=self.feature_cols,
         )
         
+        # Initialize probability arrays with NaN (for signals without valid windows)
+        all_probs = np.full((n_signals, self.num_classes), np.nan, dtype=np.float32)
+        
         if len(dataset) == 0:
-            return signals
+            # No valid windows, return with NaN probabilities
+            class_names = {0: "none", 1: "rise", 2: "fall"}
+            prob_cols = {}
+            for i in range(self.num_classes):
+                name = class_names.get(i, f"class_{i}")
+                prob_cols[f"{prefix}{name}"] = all_probs[:, i].tolist()
+            
+            result_df = signals.value.with_columns([
+                pl.Series(name, values)
+                for name, values in prob_cols.items()
+            ])
+            return Signals(result_df)
         
         dataloader = DataLoader(
             dataset,
@@ -286,7 +304,8 @@ class TemporalValidator(SignalValidator):
             num_workers=self.num_workers,
         )
         
-        all_probs = []
+        # Run inference
+        valid_probs = []
         device = next(self.model.parameters()).device
         
         with torch.no_grad():
@@ -294,27 +313,24 @@ class TemporalValidator(SignalValidator):
                 batch_x = batch_x.to(device)
                 logits = self.model(batch_x)
                 probs = torch.softmax(logits, dim=1)
-                all_probs.append(probs.cpu().numpy())
+                valid_probs.append(probs.cpu().numpy())
         
-        if not all_probs:
-            return signals
-        
-        all_probs = np.vstack(all_probs)
+        if valid_probs:
+            valid_probs = np.vstack(valid_probs)
+            
+            # Map predictions back to original signal indices
+            valid_indices = dataset.valid_signal_indices
+            for i, orig_idx in enumerate(valid_indices):
+                all_probs[orig_idx] = valid_probs[i]
         
         # Create probability columns
-        # Map class indices to meaningful names if possible
-        class_names = {
-            0: "none",
-            1: "rise", 
-            2: "fall",
-        }
-        
+        class_names = {0: "none", 1: "rise", 2: "fall"}
         prob_cols = {}
         for i in range(self.num_classes):
             name = class_names.get(i, f"class_{i}")
             prob_cols[f"{prefix}{name}"] = all_probs[:, i].tolist()
         
-        # Add columns to signals
+        # Add columns to signals (use original signals.value, not the one with dummy label)
         result_df = signals.value.with_columns([
             pl.Series(name, values)
             for name, values in prob_cols.items()
@@ -384,6 +400,7 @@ class TemporalValidator(SignalValidator):
         import pickle
         
         path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
         
         state = {
             "encoder_type": self.encoder_type,

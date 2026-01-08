@@ -211,3 +211,6 @@ merge.py
 project.txt
 *.ipynb
 *.duckdb
+notebooks/logs/*
+.vscode
+notebooks/best_models/*

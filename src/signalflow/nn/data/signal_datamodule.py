@@ -79,6 +79,14 @@ class SignalWindowDataset(Dataset):
         """Build per-pair feature matrices and timestamp indices."""
         self.pair_data: dict[str, dict] = {}
         
+        # Normalize timestamps to ensure consistent comparison
+        if self.ts_col in features_df.columns:
+            ts_dtype = features_df.schema.get(self.ts_col)
+            if isinstance(ts_dtype, pl.Datetime) and ts_dtype.time_zone is not None:
+                features_df = features_df.with_columns(
+                    pl.col(self.ts_col).dt.replace_time_zone(None)
+                )
+        
         for pair in features_df[self.pair_col].unique().to_list():
             # Get this pair's data, sorted by timestamp
             pair_df = (
@@ -90,7 +98,14 @@ class SignalWindowDataset(Dataset):
             # Feature matrix for this pair
             feature_matrix = pair_df.select(self.feature_cols).to_numpy().astype(np.float32)
             
+            # Replace NaN with 0 (or use forward fill - but numpy doesn't have it easily)
+            # This is important because rolling indicators have NaN at the start
+            nan_count = np.isnan(feature_matrix).sum()
+            if nan_count > 0:
+                feature_matrix = np.nan_to_num(feature_matrix, nan=0.0)
+            
             # Timestamp -> index mapping for this pair
+            # Convert to Python datetime for consistent hashing
             timestamps = pair_df[self.ts_col].to_list()
             ts_to_idx = {ts: idx for idx, ts in enumerate(timestamps)}
             
@@ -103,12 +118,24 @@ class SignalWindowDataset(Dataset):
     def _build_signal_windows(self, signals_df: pl.DataFrame):
         """Build windows only for signal timestamps, using same-pair history."""
         self.windows = []  # List of (pair, window_start_idx, window_end_idx, label)
+        self.valid_signal_indices = []  # Track which rows in signals_df have valid windows
+        
+        # Normalize timestamps in signals
+        if self.ts_col in signals_df.columns:
+            ts_dtype = signals_df.schema.get(self.ts_col)
+            if isinstance(ts_dtype, pl.Datetime) and ts_dtype.time_zone is not None:
+                signals_df = signals_df.with_columns(
+                    pl.col(self.ts_col).dt.replace_time_zone(None)
+                )
         
         skipped_unknown_pair = 0
         skipped_no_timestamp = 0
         skipped_insufficient = 0
         
-        for row in signals_df.iter_rows(named=True):
+        # Debug: check first few timestamps
+        debug_shown = False
+        
+        for signal_row_idx, row in enumerate(signals_df.iter_rows(named=True)):
             pair = row[self.pair_col]
             ts = row[self.ts_col]
             label = row[self.label_col]
@@ -123,6 +150,12 @@ class SignalWindowDataset(Dataset):
             # Find timestamp index within this pair's data
             if ts not in pair_info["ts_to_idx"]:
                 skipped_no_timestamp += 1
+                # Debug: show type mismatch info
+                if not debug_shown and signal_row_idx < 5:
+                    sample_feature_ts = list(pair_info["ts_to_idx"].keys())[0] if pair_info["ts_to_idx"] else None
+                    print(f"  DEBUG: Signal ts type={type(ts)}, value={ts}")
+                    print(f"  DEBUG: Feature ts type={type(sample_feature_ts)}, value={sample_feature_ts}")
+                    debug_shown = True
                 continue
             
             signal_idx = pair_info["ts_to_idx"][ts]
@@ -137,10 +170,11 @@ class SignalWindowDataset(Dataset):
             window_end = signal_idx + 1  # exclusive
             
             self.windows.append((pair, window_start, window_end, label))
+            self.valid_signal_indices.append(signal_row_idx)
         
         total_skipped = skipped_unknown_pair + skipped_no_timestamp + skipped_insufficient
+        print(f"SignalWindowDataset: {len(self.windows)} valid windows from {signals_df.height} signals")
         if total_skipped > 0:
-            print(f"SignalWindowDataset: {len(self.windows)} valid windows")
             print(f"  Skipped: {skipped_unknown_pair} (unknown pair), "
                   f"{skipped_no_timestamp} (timestamp not found), "
                   f"{skipped_insufficient} (insufficient history)")
