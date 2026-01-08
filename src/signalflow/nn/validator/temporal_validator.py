@@ -8,9 +8,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal, Optional, Any
+import pickle
 
 import torch
-import torch.nn as nn
 import lightning as L
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 import polars as pl
@@ -18,8 +18,9 @@ import polars as pl
 from signalflow.core import sf_component, Signals
 from signalflow.validator import SignalValidator
 from signalflow.nn.model.temporal_classificator import TemporalClassificator, TrainingConfig
-from signalflow.nn.data import SignalDataModule
-
+from signalflow.nn.data.signal_data_module import SignalDataModule
+from signalflow.nn.data.signal_window_dataset import SignalWindowDataset
+from signalflow.nn.data.ts_preprocessor import TimeSeriesPreprocessor
 
 @dataclass
 @sf_component(name="temporal_validator")
@@ -30,11 +31,15 @@ class TemporalValidator(SignalValidator):
     with SignalFlow's validation pipeline. Supports configurable encoder
     and head architectures via registry.
     
+    Crucially, it manages the TimeSeriesPreprocessor to ensure correct
+    scaling during both training (fit on train) and inference (transform only).
+    
     Attributes:
         encoder_type: Registry name of encoder ('encoder/lstm', 'encoder/gru').
         encoder_params: Parameters for encoder constructor.
         head_type: Registry name of head or None for default linear.
         head_params: Parameters for head constructor.
+        preprocessor: Instance of TimeSeriesPreprocessor (optional but recommended).
         window_size: Number of timesteps in input window.
         num_classes: Number of output classes.
         class_weights: Optional class weights for imbalanced data.
@@ -48,29 +53,8 @@ class TemporalValidator(SignalValidator):
         train_val_test_split: Data split ratios.
         split_strategy: How to split data ('temporal', 'random', 'pair').
         num_workers: DataLoader workers.
-    
-    Example:
-        >>> validator = TemporalValidator(
-        ...     encoder_type="encoder/lstm",
-        ...     encoder_params={
-        ...         "input_size": 20,
-        ...         "hidden_size": 64,
-        ...         "num_layers": 2,
-        ...     },
-        ...     head_type="head/cls/mlp",
-        ...     head_params={"hidden_sizes": [128], "dropout": 0.2},
-        ...     window_size=60,
-        ...     training_config={"learning_rate": 1e-3},
-        ... )
-        >>> 
-        >>> # Train
-        >>> validator.fit(X_train, y_train)
-        >>> 
-        >>> # Validate signals
-        >>> validated = validator.validate_signals(signals, features)
     """
     
-    # Architecture config
     encoder_type: str = "encoder/lstm"
     encoder_params: dict[str, Any] = field(default_factory=lambda: {
         "input_size": 10,
@@ -84,27 +68,24 @@ class TemporalValidator(SignalValidator):
         "dropout": 0.2,
     })
     
-    # Model config
+    preprocessor: Optional[TimeSeriesPreprocessor] = None
+    
     window_size: int = 60
     num_classes: int = 3
     class_weights: Optional[list[float]] = None
     training_config: dict[str, Any] = field(default_factory=dict)
     
-    # Feature config
     feature_cols: Optional[list[str]] = None
     checkpoint_path: Optional[Path] = None
     
-    # Training params
     batch_size: int = 32
     max_epochs: int = 50
     early_stopping_patience: int = 10
     
-    # DataModule params
     train_val_test_split: tuple[float, float, float] = (0.7, 0.15, 0.15)
     split_strategy: Literal["temporal", "random", "pair"] = "temporal"
     num_workers: int = 4
     
-    # Internal state
     model: Optional[TemporalClassificator] = field(default=None, init=False, repr=False)
     trainer: Optional[L.Trainer] = field(default=None, init=False, repr=False)
     
@@ -116,7 +97,6 @@ class TemporalValidator(SignalValidator):
     
     def _setup_model(self):
         """Initialize the TemporalClassificator with config."""
-        # Build TrainingConfig from dict
         tc = TrainingConfig.from_dict(self.training_config) if self.training_config else TrainingConfig()
         
         self.model = TemporalClassificator(
@@ -131,11 +111,10 @@ class TemporalValidator(SignalValidator):
     
     def _infer_input_size(self, features_df: pl.DataFrame) -> int:
         """Infer input size from features DataFrame."""
-        exclude_cols = {self.pair_col, self.ts_col, "label", "signal", "signal_type"}
-        
         if self.feature_cols is not None:
             return len(self.feature_cols)
-        
+            
+        exclude_cols = {"pair", "timestamp", "label", "signal", "signal_type"}
         feature_cols = [col for col in features_df.columns if col not in exclude_cols]
         return len(feature_cols)
     
@@ -151,39 +130,34 @@ class TemporalValidator(SignalValidator):
     ) -> "TemporalValidator":
         """Train the validator on labeled signals.
         
+        The TimeSeriesPreprocessor (if provided) will be FITTED on the training
+        split determined by the DataModule to avoid look-ahead bias.
+        
         Args:
-            X_train: Features DataFrame [pair, timestamp, feature_1, ...].
-            y_train: Labels DataFrame [pair, timestamp, label].
-            X_val: Validation features (optional, uses split from DataModule).
-            y_val: Validation labels (optional).
+            X_train: Raw Feature History [pair, timestamp, feature_1, ...].
+            y_train: Labeled signals [pair, timestamp, label].
             log_dir: Directory for logs and checkpoints.
-            accelerator: Lightning accelerator ('auto', 'cpu', 'gpu').
-            devices: Number of devices or device list.
-            
-        Returns:
-            Self for method chaining.
-            
-        Raises:
-            ValueError: If y_train missing required columns.
+            accelerator: Lightning accelerator.
+            devices: Number of devices.
         """
-        # Validate y_train has required columns
         if isinstance(y_train, pl.DataFrame):
             if "pair" not in y_train.columns or "timestamp" not in y_train.columns:
                 raise ValueError("y_train must contain 'pair' and 'timestamp' columns")
         
-        # Update encoder input_size if not set
         input_size = self._infer_input_size(X_train)
         if "input_size" not in self.encoder_params or self.encoder_params.get("input_size") != input_size:
             self.encoder_params = {**self.encoder_params, "input_size": input_size}
         
-        # Setup model
         if self.model is None:
             self._setup_model()
         
-        # Create DataModule
+        if self.preprocessor is None:
+            pass 
+
         datamodule = SignalDataModule(
             features_df=X_train,
             signals_df=y_train,
+            preprocessor=self.preprocessor,
             window_size=self.window_size,
             train_val_test_split=self.train_val_test_split,
             split_strategy=self.split_strategy,
@@ -192,7 +166,6 @@ class TemporalValidator(SignalValidator):
             feature_cols=self.feature_cols,
         )
         
-        # Callbacks
         callbacks = [
             EarlyStopping(
                 monitor="val_loss",
@@ -212,7 +185,6 @@ class TemporalValidator(SignalValidator):
             )
             callbacks.append(checkpoint_callback)
         
-        # Trainer
         self.trainer = L.Trainer(
             max_epochs=self.max_epochs,
             accelerator=accelerator,
@@ -222,10 +194,8 @@ class TemporalValidator(SignalValidator):
             enable_progress_bar=True,
         )
         
-        # Train
         self.trainer.fit(self.model, datamodule)
         
-        # Load best checkpoint if available
         if checkpoint_callback and checkpoint_callback.best_model_path:
             self.model = TemporalClassificator.load_from_checkpoint(
                 checkpoint_callback.best_model_path
@@ -239,24 +209,17 @@ class TemporalValidator(SignalValidator):
         features: pl.DataFrame,
         prefix: str = "probability_",
     ) -> Signals:
-        """Add validation probabilities to signals.
-        
-        Runs inference on each signal and adds probability columns.
-        Signals without sufficient history will have NaN probabilities.
+        """Add validation probabilities to signals using fitted preprocessor.
         
         Args:
             signals: Input Signals container.
-            features: Features DataFrame with [pair, timestamp, features...].
+            features: RAW Features DataFrame with [pair, timestamp, features...].
             prefix: Prefix for probability columns.
             
         Returns:
             Signals with added probability columns.
-            
-        Raises:
-            ValueError: If model not trained.
         """
         import numpy as np
-        from signalflow.nn.data.signal_datamodule import SignalWindowDataset
         from torch.utils.data import DataLoader
         
         if self.model is None:
@@ -266,36 +229,27 @@ class TemporalValidator(SignalValidator):
         signals_df = signals.value
         n_signals = signals_df.height
         
-        # Add dummy label for dataset compatibility
+        if self.preprocessor:
+            processed_features = self.preprocessor.transform(features)
+        else:
+            processed_features = features
+        
         if "label" not in signals_df.columns:
             signals_df_with_label = signals_df.with_columns(pl.lit(0).alias("label"))
         else:
             signals_df_with_label = signals_df
         
-        # Create dataset
         dataset = SignalWindowDataset(
-            features_df=features,
+            features_df=processed_features,
             signals_df=signals_df_with_label,
             window_size=self.window_size,
             feature_cols=self.feature_cols,
         )
         
-        # Initialize probability arrays with NaN (for signals without valid windows)
         all_probs = np.full((n_signals, self.num_classes), np.nan, dtype=np.float32)
         
         if len(dataset) == 0:
-            # No valid windows, return with NaN probabilities
-            class_names = {0: "none", 1: "rise", 2: "fall"}
-            prob_cols = {}
-            for i in range(self.num_classes):
-                name = class_names.get(i, f"class_{i}")
-                prob_cols[f"{prefix}{name}"] = all_probs[:, i].tolist()
-            
-            result_df = signals.value.with_columns([
-                pl.Series(name, values)
-                for name, values in prob_cols.items()
-            ])
-            return Signals(result_df)
+            return self._return_empty_predictions(signals, prefix, all_probs)
         
         dataloader = DataLoader(
             dataset,
@@ -304,9 +258,9 @@ class TemporalValidator(SignalValidator):
             num_workers=self.num_workers,
         )
         
-        # Run inference
         valid_probs = []
         device = next(self.model.parameters()).device
+        self.model.to(device)
         
         with torch.no_grad():
             for batch_x, _ in dataloader:
@@ -317,92 +271,40 @@ class TemporalValidator(SignalValidator):
         
         if valid_probs:
             valid_probs = np.vstack(valid_probs)
-            
-            # Map predictions back to original signal indices
             valid_indices = dataset.valid_signal_indices
             for i, orig_idx in enumerate(valid_indices):
                 all_probs[orig_idx] = valid_probs[i]
         
-        # Create probability columns
+        return self._format_predictions(signals, prefix, all_probs)
+
+    def _format_predictions(self, signals, prefix, all_probs):
+        """Helper to append probability columns."""
         class_names = {0: "none", 1: "rise", 2: "fall"}
         prob_cols = {}
         for i in range(self.num_classes):
             name = class_names.get(i, f"class_{i}")
             prob_cols[f"{prefix}{name}"] = all_probs[:, i].tolist()
         
-        # Add columns to signals (use original signals.value, not the one with dummy label)
         result_df = signals.value.with_columns([
             pl.Series(name, values)
             for name, values in prob_cols.items()
         ])
-        
         return Signals(result_df)
-    
-    def predict(self, signals: Signals, X: pl.DataFrame) -> Signals:
-        """Predict class labels for signals.
-        
-        Args:
-            signals: Input signals.
-            X: Features DataFrame.
-            
-        Returns:
-            Signals with 'validation_pred' column.
-        """
-        validated = self.validate_signals(signals, X, prefix="probability_")
-        
-        # Get predicted class
-        prob_cols = [c for c in validated.value.columns if c.startswith("probability_")]
-        
-        if not prob_cols:
-            return validated
-        
-        # Find max probability column
-        result_df = validated.value.with_columns(
-            pl.concat_list(prob_cols)
-            .list.arg_max()
-            .alias("validation_pred")
-        )
-        
-        return Signals(result_df)
-    
-    def predict_proba(self, signals: Signals, X: pl.DataFrame) -> Signals:
-        """Predict class probabilities for signals.
-        
-        Alias for validate_signals().
-        """
-        return self.validate_signals(signals, X)
-    
-    def save_checkpoint(self, path: Path):
-        """Save model checkpoint.
-        
-        Args:
-            path: Path to save checkpoint.
-        """
-        if self.trainer:
-            self.trainer.save_checkpoint(path)
-        elif self.model:
-            torch.save(self.model.state_dict(), path)
-    
-    def load_checkpoint(self, path: Path):
-        """Load model from checkpoint.
-        
-        Args:
-            path: Path to checkpoint file.
-        """
-        self.model = TemporalClassificator.load_from_checkpoint(path)
-    
+
+    def _return_empty_predictions(self, signals, prefix, all_probs):
+        return self._format_predictions(signals, prefix, all_probs)
+
     def save(self, path: str | Path) -> None:
-        """Save validator state.
+        """Save validator state including the fitted Preprocessor.
         
-        Args:
-            path: Path to save file.
+        This creates a portable artifact that contains both the Neural Network weights
+        and the Scaling statistics (medians/IQRs) required to process new data.
         """
-        import pickle
-        
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         
         state = {
+            "version": "0.2.0",
             "encoder_type": self.encoder_type,
             "encoder_params": self.encoder_params,
             "head_type": self.head_type,
@@ -412,6 +314,7 @@ class TemporalValidator(SignalValidator):
             "class_weights": self.class_weights,
             "training_config": self.training_config,
             "feature_cols": self.feature_cols,
+            "preprocessor": self.preprocessor, 
             "model_state_dict": self.model.state_dict() if self.model else None,
         }
         
@@ -420,16 +323,7 @@ class TemporalValidator(SignalValidator):
     
     @classmethod
     def load(cls, path: str | Path) -> "TemporalValidator":
-        """Load validator from file.
-        
-        Args:
-            path: Path to saved validator.
-            
-        Returns:
-            Loaded TemporalValidator.
-        """
-        import pickle
-        
+        """Load validator and preprocessor from file."""
         path = Path(path)
         
         with open(path, "rb") as f:
@@ -445,6 +339,7 @@ class TemporalValidator(SignalValidator):
             class_weights=state["class_weights"],
             training_config=state["training_config"],
             feature_cols=state["feature_cols"],
+            preprocessor=state.get("preprocessor"), 
         )
         
         if state["model_state_dict"]:
