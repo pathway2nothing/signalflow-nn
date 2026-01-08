@@ -17,6 +17,7 @@ from signalflow.nn.data.signal_data_module import SignalDataModule
 from signalflow.nn.data.signal_window_dataset import SignalWindowDataset
 from signalflow.nn.data.ts_preprocessor import TimeSeriesPreprocessor
 
+
 @dataclass
 @sf_component(name="temporal_validator")
 class TemporalValidator(SignalValidator):
