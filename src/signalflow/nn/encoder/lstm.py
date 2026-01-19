@@ -1,7 +1,7 @@
 """LSTM encoder for temporal features."""
 import torch
 import torch.nn as nn
-from signalflow.core import SfTorchModuleMixin, sf_component
+from signalflow import SfTorchModuleMixin, sf_component
 
 @sf_component(name="encoder/lstm")
 class LSTMEncoder(nn.Module, SfTorchModuleMixin):

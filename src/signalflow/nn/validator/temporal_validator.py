@@ -10,7 +10,7 @@ import lightning as L
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 import polars as pl
 
-from signalflow.core import sf_component, Signals
+from signalflow import sf_component, Signals
 from signalflow.validator import SignalValidator
 from signalflow.nn.model.temporal_classificator import TemporalClassificator, TrainingConfig
 from signalflow.nn.data.signal_data_module import SignalDataModule

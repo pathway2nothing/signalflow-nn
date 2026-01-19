@@ -10,8 +10,7 @@ import torch.nn as nn
 import lightning as L
 import optuna
 
-from signalflow.core import SfTorchModuleMixin, sf_component, SfComponentType
-from signalflow.core.registry import default_registry
+from signalflow import SfTorchModuleMixin, sf_component, SfComponentType, default_registry
 
 
 @dataclass

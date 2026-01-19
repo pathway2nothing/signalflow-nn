@@ -1,7 +1,7 @@
 """GRU encoder for temporal features."""
 import torch
 import torch.nn as nn
-from signalflow.core import SfTorchModuleMixin, sf_component
+from signalflow import SfTorchModuleMixin, sf_component
 
 
 @sf_component(name="encoder/gru")

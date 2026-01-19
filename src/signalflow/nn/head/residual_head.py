@@ -5,7 +5,7 @@ import optuna
 import torch
 import torch.nn as nn
 
-from signalflow.core import sf_component, SfTorchModuleMixin
+from signalflow import sf_component, SfTorchModuleMixin
 
 
 class ResidualBlock(nn.Module):
