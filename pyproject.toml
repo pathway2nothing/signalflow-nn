@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "signalflow-nn"
-version = "0.2.5"
+version = "1.1.0"
 description = "Neural network extension for signalflow (torch/lightning)."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-  "signalflow-trading>=0.2.5",
+  "signalflow-trading>=1.1.0",
   "torch>=2.2",
   "lightning>=2.5",
 ]
