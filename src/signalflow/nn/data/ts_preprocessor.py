@@ -5,10 +5,12 @@ from typing import Dict, List, Optional, Union, Tuple
 from loguru import logger
 from dataclasses import dataclass
 
+
 @dataclass
 class ScalerConfig:
     method: str = "robust"  # 'robust', 'standard', 'minmax'
-    scope: str = "group"    # 'global' (all data), 'group' (per asset_id)
+    scope: str = "group"  # 'global' (all data), 'group' (per asset_id)
+
 
 class TimeSeriesPreprocessor:
     """
@@ -22,7 +24,7 @@ class TimeSeriesPreprocessor:
         default_config: ScalerConfig = ScalerConfig(method="robust", scope="group"),
         time_col: str = "timestamp",
         group_col: str = "asset_id",
-        fill_strategy: str = "forward"
+        fill_strategy: str = "forward",
     ):
         """
         Args:
@@ -37,7 +39,7 @@ class TimeSeriesPreprocessor:
         self.time_col = time_col
         self.group_col = group_col
         self.fill_strategy = fill_strategy
-        
+
         # State storage for fitted parameters (mean, std, min, max, median, iqr)
         # Structure: { feature_name: { 'global': params, 'groups': { asset_id: params } } }
         self.fitted_params: Dict[str, Dict] = {}
@@ -69,7 +71,7 @@ class TimeSeriesPreprocessor:
         Applies the fitted transformations to the dataframe.
         """
         logger.info("Transforming data...")
-        
+
         # 1. Handle Missing Values (Polars is very fast at this)
         if self.fill_strategy == "forward":
             df = df.with_columns([pl.col(c).forward_fill().backward_fill() for c in self.feature_names])
@@ -79,13 +81,13 @@ class TimeSeriesPreprocessor:
         # 2. Apply Scaling
         # We build a list of expressions to execute lazily if possible
         expressions = []
-        
-        # For grouped scaling, we might need to join params. 
+
+        # For grouped scaling, we might need to join params.
         # But for performance on large DataFrames, mapping or join is better.
         # Let's iterate features.
-        
+
         df_lazy = df.lazy()
-        
+
         for col in self.feature_names:
             params = self.fitted_params.get(col)
             if not params:
@@ -93,20 +95,20 @@ class TimeSeriesPreprocessor:
                 continue
 
             config = params["config"]
-            
+
             if config.scope == "global":
                 expr = self._get_transform_expr(pl.col(col), params["stats"], config.method)
                 df_lazy = df_lazy.with_columns(expr.alias(col))
-            
+
             elif config.scope == "group":
                 # For grouped scaling, we need to apply logic per asset.
                 # Efficient approach: Join the stats DataFrame and calculate.
                 stats_df = params["stats_df"]  # This stores mean/std per asset_id
-                
+
                 # Join stats to the main frame
                 # Suffix columns to avoid collision, e.g., "_mean", "_std"
                 df_lazy = df_lazy.join(stats_df.lazy(), on=self.group_col, how="left")
-                
+
                 # Apply calculation
                 col_expr = pl.col(col)
                 if config.method == "standard":
@@ -122,9 +124,9 @@ class TimeSeriesPreprocessor:
                     min_col = pl.col(f"{col}_min")
                     max_col = pl.col(f"{col}_max")
                     expr = (col_expr - min_col) / (max_col - min_col + 1e-8)
-                
+
                 df_lazy = df_lazy.with_columns(expr.alias(col))
-                
+
                 # Drop stats cols to clean up
                 stats_cols = stats_df.columns
                 stats_cols.remove(self.group_col)
@@ -133,53 +135,49 @@ class TimeSeriesPreprocessor:
         return df_lazy.collect()
 
     def make_windows(
-        self, 
-        df: pl.DataFrame, 
-        events: pl.DataFrame, 
-        window_size: int,
-        future_window: int = 0
+        self, df: pl.DataFrame, events: pl.DataFrame, window_size: int, future_window: int = 0
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Extracts 3D tensors for neural networks efficiently.
-        
+
         Args:
             df: Transformed DataFrame (Long format: [timestamp, asset_id, features...])
             events: DataFrame containing [timestamp, asset_id] of signals.
             window_size: Lookback period (Sequence Length).
-            
+
         Returns:
             X: (num_events, window_size, num_features)
             y: (num_events,) or None (targets)
         """
         logger.info(f"Extracting {len(events)} windows of size {window_size}...")
-        
+
         # Ensure sorting
         df = df.sort([self.group_col, self.time_col])
-        
+
         # Convert to numpy for fast slicing (Polars -> Numpy is zero-copy for numeric)
         # We need a mapping of (asset_id) -> (array_indices)
-        
+
         # Strategy:
         # 1. Group df by asset_id to get contiguous memory blocks.
         # 2. Use searchsorted to find indices of events.
         # 3. Slice numpy arrays.
-        
+
         # Check if asset_id is string or int. If string, encode it for performance or use dictionary map.
         assets = df[self.group_col].unique().to_list()
         feature_data = {}
         time_data = {}
-        
+
         # Partition data by asset for O(1) access
         # This is memory intensive but fast. For HUGE data, use lazy slicing.
         partitioned = df.partition_by(self.group_col, as_dict=True)
-        
+
         X_list = []
         valid_indices = []
-        
+
         # Convert feature columns to float32 numpy matrix per asset
         asset_arrays = {}
         asset_times = {}
-        
+
         for asset, sub_df in partitioned.items():
             # (Time, Features)
             asset_arrays[asset] = sub_df.select(self.feature_names).to_numpy().astype(np.float32)
@@ -188,39 +186,39 @@ class TimeSeriesPreprocessor:
         # Iterate events
         # events should have columns: [timestamp, asset_id]
         event_rows = events.to_dicts()
-        
+
         for i, event in enumerate(event_rows):
             asset = event[self.group_col]
             ts = event[self.time_col]
-            
+
             if asset not in asset_arrays:
                 continue
-                
+
             times = asset_times[asset]
 
-            idx = np.searchsorted(times, ts, side='right') - 1
-            
+            idx = np.searchsorted(times, ts, side="right") - 1
+
             # Check bounds
             if idx < window_size - 1:
                 # Not enough history (warmup period)
                 continue
-                
+
             # Slice: [idx - window + 1 : idx + 1]
             start_idx = idx - window_size + 1
             end_idx = idx + 1
-            
+
             window_data = asset_arrays[asset][start_idx:end_idx]
-            
+
             if window_data.shape[0] == window_size:
                 X_list.append(window_data)
                 valid_indices.append(i)
 
         if not X_list:
             return np.array([]), np.array([])
-            
-        X = np.stack(X_list) # (N, L, F)
+
+        X = np.stack(X_list)  # (N, L, F)
         logger.success(f"Tensor created: {X.shape}")
-        
+
         return X, np.array(valid_indices)
 
     # --- Internal Helpers ---
@@ -230,28 +228,33 @@ class TimeSeriesPreprocessor:
             stats = df.select([pl.col(col).mean(), pl.col(col).std()]).to_dict(as_series=False)
             self.fitted_params[col]["stats"] = {"mean": stats[col + "_mean"][0], "std": stats[col + "_std"][0]}
         elif method == "robust":
-            stats = df.select([pl.col(col).median(), pl.col(col).quantile(0.75) - pl.col(col).quantile(0.25)]).to_dict(as_series=False)
-            self.fitted_params[col]["stats"] = {"median": stats[col + "_median"][0], "iqr": stats[col][0]} # key might vary slightly depending on alias
+            stats = df.select([pl.col(col).median(), pl.col(col).quantile(0.75) - pl.col(col).quantile(0.25)]).to_dict(
+                as_series=False
+            )
+            self.fitted_params[col]["stats"] = {
+                "median": stats[col + "_median"][0],
+                "iqr": stats[col][0],
+            }  # key might vary slightly depending on alias
         # ... implement minmax
 
     def _fit_grouped(self, df: pl.DataFrame, col: str, method: str):
         # Calculate stats grouped by asset_id
         if method == "standard":
-            stats_df = df.group_by(self.group_col).agg([
-                pl.col(col).mean().alias(f"{col}_mean"),
-                pl.col(col).std().alias(f"{col}_std")
-            ])
+            stats_df = df.group_by(self.group_col).agg(
+                [pl.col(col).mean().alias(f"{col}_mean"), pl.col(col).std().alias(f"{col}_std")]
+            )
         elif method == "robust":
-            stats_df = df.group_by(self.group_col).agg([
-                pl.col(col).median().alias(f"{col}_median"),
-                (pl.col(col).quantile(0.75) - pl.col(col).quantile(0.25)).alias(f"{col}_iqr")
-            ])
+            stats_df = df.group_by(self.group_col).agg(
+                [
+                    pl.col(col).median().alias(f"{col}_median"),
+                    (pl.col(col).quantile(0.75) - pl.col(col).quantile(0.25)).alias(f"{col}_iqr"),
+                ]
+            )
         elif method == "minmax":
-            stats_df = df.group_by(self.group_col).agg([
-                pl.col(col).min().alias(f"{col}_min"),
-                pl.col(col).max().alias(f"{col}_max")
-            ])
-            
+            stats_df = df.group_by(self.group_col).agg(
+                [pl.col(col).min().alias(f"{col}_min"), pl.col(col).max().alias(f"{col}_max")]
+            )
+
         self.fitted_params[col]["stats_df"] = stats_df
 
     def _get_transform_expr(self, col_expr, stats, method):
