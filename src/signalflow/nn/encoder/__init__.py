@@ -12,20 +12,29 @@ from signalflow.nn.encoder.xcm import XCMEncoder
 from signalflow.nn.encoder.gmlp import gMLPEncoder
 from signalflow.nn.encoder.omniscale import OmniScaleCNNEncoder
 from signalflow.nn.encoder.convtran import ConvTranEncoder
+from signalflow.nn.encoder.mamba import MambaEncoder
+from signalflow.nn.encoder.itransformer import iTransformerEncoder
 
 __all__ = [
+    # RNN-based
     "LSTMEncoder",
     "GRUEncoder",
+    # CNN-based
     "Conv1dEncoder",
     "TCNEncoder",
     "InceptionTimeEncoder",
+    "ResNet1dEncoder",
+    "XceptionTimeEncoder",
+    "OmniScaleCNNEncoder",
+    # Transformer-based
     "TransformerEncoder",
     "PatchTSTEncoder",
-    "ResNet1dEncoder",
-    "TSMixerEncoder",
-    "XceptionTimeEncoder",
-    "XCMEncoder",
-    "gMLPEncoder",
-    "OmniScaleCNNEncoder",
     "ConvTranEncoder",
+    "iTransformerEncoder",  # Inverted Transformer (ICLR 2024)
+    # Mixer-based
+    "TSMixerEncoder",
+    "gMLPEncoder",
+    "XCMEncoder",
+    # State Space Models
+    "MambaEncoder",  # Mamba SSM (O(T) complexity)
 ]
