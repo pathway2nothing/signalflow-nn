@@ -259,16 +259,18 @@ class iTransformerEncoder(nn.Module, SfTorchModuleMixin):
 
         # Transformer blocks
         n_vars = input_size + (1 if pool == "cls" else 0)
-        self.layers = nn.ModuleList([
-            iTransformerBlock(
-                n_vars=n_vars,
-                d_model=d_model,
-                n_heads=n_heads,
-                d_ff=self.d_ff,
-                dropout=dropout,
-            )
-            for _ in range(n_layers)
-        ])
+        self.layers = nn.ModuleList(
+            [
+                iTransformerBlock(
+                    n_vars=n_vars,
+                    d_model=d_model,
+                    n_heads=n_heads,
+                    d_ff=self.d_ff,
+                    dropout=dropout,
+                )
+                for _ in range(n_layers)
+            ]
+        )
 
         # Final projection
         self.norm = nn.LayerNorm(d_model)

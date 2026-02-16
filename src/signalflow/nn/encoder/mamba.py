@@ -78,10 +78,9 @@ class SelectiveSSM(nn.Module):
             nn.init.uniform_(self.dt_proj.weight, -dt_init_std, dt_init_std)
 
         # Initialize dt bias
-        dt = torch.exp(
-            torch.rand(self.d_inner) * (math.log(dt_max) - math.log(dt_min))
-            + math.log(dt_min)
-        ).clamp(min=dt_init_floor)
+        dt = torch.exp(torch.rand(self.d_inner) * (math.log(dt_max) - math.log(dt_min)) + math.log(dt_min)).clamp(
+            min=dt_init_floor
+        )
         inv_dt = dt + torch.log(-torch.expm1(-dt))
         with torch.no_grad():
             self.dt_proj.bias.copy_(inv_dt)
@@ -279,16 +278,18 @@ class MambaEncoder(nn.Module, SfTorchModuleMixin):
         self.input_proj = nn.Linear(input_size, d_model)
 
         # Mamba blocks
-        self.layers = nn.ModuleList([
-            MambaBlock(
-                d_model=d_model,
-                d_state=d_state,
-                d_conv=d_conv,
-                expand=expand,
-                dropout=dropout,
-            )
-            for _ in range(n_layers)
-        ])
+        self.layers = nn.ModuleList(
+            [
+                MambaBlock(
+                    d_model=d_model,
+                    d_state=d_state,
+                    d_conv=d_conv,
+                    expand=expand,
+                    dropout=dropout,
+                )
+                for _ in range(n_layers)
+            ]
+        )
 
         # Final normalization
         self.norm = nn.LayerNorm(d_model)
