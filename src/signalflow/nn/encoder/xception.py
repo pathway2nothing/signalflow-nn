@@ -7,6 +7,7 @@ Adapted from Chollet "Xception" (2017) for 1D time series.
 
 import torch
 import torch.nn as nn
+
 from signalflow import SfTorchModuleMixin, sf_component
 
 

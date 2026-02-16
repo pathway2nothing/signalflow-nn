@@ -2,6 +2,7 @@
 
 import torch
 import torch.nn as nn
+
 from signalflow import SfTorchModuleMixin, sf_component
 
 

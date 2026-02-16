@@ -3,14 +3,13 @@
 import pytest
 import torch
 
+from signalflow.nn.head.attention_head import AttentionClassifierHead
+from signalflow.nn.head.confidence_head import ClassificationWithConfidenceHead, ConfidenceLoss
+from signalflow.nn.head.distribution_head import DistributionHead
 from signalflow.nn.head.linear_head import LinearClassifierHead
 from signalflow.nn.head.mlp_head import MLPClassifierHead
-from signalflow.nn.head.attention_head import AttentionClassifierHead
+from signalflow.nn.head.ordinal_head import OrdinalCrossEntropyLoss, OrdinalRegressionHead
 from signalflow.nn.head.residual_head import ResidualClassifierHead
-from signalflow.nn.head.ordinal_head import OrdinalRegressionHead, OrdinalCrossEntropyLoss
-from signalflow.nn.head.distribution_head import DistributionHead
-from signalflow.nn.head.confidence_head import ClassificationWithConfidenceHead, ConfidenceLoss
-
 
 INPUT_SIZE = 64
 NUM_CLASSES = 3

@@ -6,6 +6,7 @@ and Recurrent Networks for Sequence Modeling" (2018).
 
 import torch
 import torch.nn as nn
+
 from signalflow import SfTorchModuleMixin, sf_component
 
 

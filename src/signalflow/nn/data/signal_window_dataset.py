@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 import numpy as np
 import polars as pl
 import torch
@@ -32,7 +30,7 @@ class SignalWindowDataset(Dataset):
         signals_df: pl.DataFrame,
         window_size: int = 60,
         window_timeframe: int = 1,
-        feature_cols: Optional[list[str]] = None,
+        feature_cols: list[str] | None = None,
         pair_col: str = "pair",
         ts_col: str = "timestamp",
         label_col: str = "label",

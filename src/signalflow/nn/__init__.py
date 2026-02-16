@@ -7,9 +7,9 @@ import signalflow.nn.validator as validator
 
 __all__ = [
     "data",
+    "encoder",
     "head",
     "loss",
     "model",
     "validator",
-    "encoder",
 ]

@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from signalflow import sf_component, SfTorchModuleMixin
+from signalflow import SfTorchModuleMixin, sf_component
 
 
 @sf_component(name="head/soft/distribution")

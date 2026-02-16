@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Literal, Optional
 import os
+from dataclasses import dataclass, field
+from typing import Literal
 
+import lightning as L
 import polars as pl
 from torch.utils.data import DataLoader
-import lightning as L
 
 from signalflow.nn.data.signal_window_dataset import SignalWindowDataset
 from signalflow.nn.data.ts_preprocessor import TimeSeriesPreprocessor
@@ -27,16 +27,16 @@ class SignalDataModule(L.LightningDataModule):
     split_strategy: Literal["temporal", "random", "pair"] = "temporal"
     batch_size: int = 32
     num_workers: int = 4
-    feature_cols: Optional[list[str]] = None
+    feature_cols: list[str] | None = None
 
     pair_col: str = "pair"
     ts_col: str = "timestamp"
     label_col: str = "label"
 
-    train_signals: Optional[pl.DataFrame] = field(default=None, init=False)
-    val_signals: Optional[pl.DataFrame] = field(default=None, init=False)
-    test_signals: Optional[pl.DataFrame] = field(default=None, init=False)
-    processed_features: Optional[pl.DataFrame] = field(default=None, init=False)
+    train_signals: pl.DataFrame | None = field(default=None, init=False)
+    val_signals: pl.DataFrame | None = field(default=None, init=False)
+    test_signals: pl.DataFrame | None = field(default=None, init=False)
+    processed_features: pl.DataFrame | None = field(default=None, init=False)
 
     def __post_init__(self):
         super().__init__()
@@ -44,7 +44,7 @@ class SignalDataModule(L.LightningDataModule):
             exclude = {self.pair_col, self.ts_col, self.label_col, "signal", "signal_type"}
             self.feature_cols = [c for c in self.features_df.columns if c not in exclude]
 
-    def setup(self, stage: Optional[str] = None):
+    def setup(self, stage: str | None = None):
         if self.train_signals is not None:
             return
 

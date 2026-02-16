@@ -9,11 +9,11 @@ https://arxiv.org/abs/2310.06625
 """
 
 import math
-from typing import Optional
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from signalflow import SfTorchModuleMixin, sf_component
 
 

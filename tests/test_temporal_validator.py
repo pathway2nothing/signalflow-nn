@@ -1,6 +1,5 @@
 """Tests for TemporalValidator."""
 
-import pickle
 import tempfile
 from pathlib import Path
 
@@ -8,8 +7,8 @@ import polars as pl
 import pytest
 import torch
 
-from signalflow.nn.validator.temporal_validator import TemporalValidator
 from signalflow.nn.data.ts_preprocessor import ScalerConfig, TimeSeriesPreprocessor
+from signalflow.nn.validator.temporal_validator import TemporalValidator
 
 
 @pytest.fixture

@@ -1,10 +1,8 @@
 """Tests for LSTM and GRU encoders."""
 
-import pytest
-import torch
 
-from signalflow.nn.encoder.lstm import LSTMEncoder
 from signalflow.nn.encoder.gru import GRUEncoder
+from signalflow.nn.encoder.lstm import LSTMEncoder
 
 
 class TestLSTMEncoder:

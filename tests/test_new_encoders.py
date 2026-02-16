@@ -3,11 +3,11 @@
 import pytest
 import torch
 
-from signalflow.nn.encoder.xception import XceptionTimeEncoder
-from signalflow.nn.encoder.xcm import XCMEncoder
+from signalflow.nn.encoder.convtran import ConvTranEncoder
 from signalflow.nn.encoder.gmlp import gMLPEncoder
 from signalflow.nn.encoder.omniscale import OmniScaleCNNEncoder
-from signalflow.nn.encoder.convtran import ConvTranEncoder
+from signalflow.nn.encoder.xception import XceptionTimeEncoder
+from signalflow.nn.encoder.xcm import XCMEncoder
 
 
 class TestXceptionTimeEncoder:

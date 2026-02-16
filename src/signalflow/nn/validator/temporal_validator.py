@@ -1,21 +1,21 @@
 from __future__ import annotations
 
+import pickle
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal, Optional, Any
-import pickle
+from typing import Any, Literal
 
-import torch
 import lightning as L
-from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 import polars as pl
+import torch
+from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 
-from signalflow import sf_component, Signals
-from signalflow.validator import SignalValidator
-from signalflow.nn.model.temporal_classificator import TemporalClassificator, TrainingConfig
+from signalflow import Signals, sf_component
 from signalflow.nn.data.signal_data_module import SignalDataModule
 from signalflow.nn.data.signal_window_dataset import SignalWindowDataset
 from signalflow.nn.data.ts_preprocessor import TimeSeriesPreprocessor
+from signalflow.nn.model.temporal_classificator import TemporalClassificator, TrainingConfig
+from signalflow.validator import SignalValidator
 
 
 @dataclass
@@ -32,24 +32,24 @@ class TemporalValidator(SignalValidator):
             "dropout": 0.1,
         }
     )
-    head_type: Optional[str] = "head/cls/mlp"
-    head_params: Optional[dict[str, Any]] = field(
+    head_type: str | None = "head/cls/mlp"
+    head_params: dict[str, Any] | None = field(
         default_factory=lambda: {
             "hidden_sizes": [128],
             "dropout": 0.2,
         }
     )
 
-    preprocessor: Optional[TimeSeriesPreprocessor] = None
+    preprocessor: TimeSeriesPreprocessor | None = None
 
     window_size: int = 60
     window_timeframe: int = 1
     num_classes: int = 3
-    class_weights: Optional[list[float]] = None
+    class_weights: list[float] | None = None
     training_config: dict[str, Any] = field(default_factory=dict)
 
-    feature_cols: Optional[list[str]] = None
-    checkpoint_path: Optional[Path] = None
+    feature_cols: list[str] | None = None
+    checkpoint_path: Path | None = None
 
     batch_size: int = 32
     max_epochs: int = 50
@@ -59,8 +59,8 @@ class TemporalValidator(SignalValidator):
     split_strategy: Literal["temporal", "random", "pair"] = "temporal"
     num_workers: int = 4
 
-    model: Optional[TemporalClassificator] = field(default=None, init=False, repr=False)
-    trainer: Optional[L.Trainer] = field(default=None, init=False, repr=False)
+    model: TemporalClassificator | None = field(default=None, init=False, repr=False)
+    trainer: L.Trainer | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self):
         if self.checkpoint_path:
@@ -92,12 +92,12 @@ class TemporalValidator(SignalValidator):
         self,
         X_train: pl.DataFrame,
         y_train: pl.DataFrame | pl.Series,
-        X_val: Optional[pl.DataFrame] = None,
-        y_val: Optional[pl.DataFrame | pl.Series] = None,
-        log_dir: Optional[Path] = None,
+        X_val: pl.DataFrame | None = None,
+        y_val: pl.DataFrame | pl.Series | None = None,
+        log_dir: Path | None = None,
         accelerator: str = "auto",
         devices: int | list[int] = 1,
-    ) -> "TemporalValidator":
+    ) -> TemporalValidator:
 
         if isinstance(y_train, pl.DataFrame):
             if "pair" not in y_train.columns or "timestamp" not in y_train.columns:
@@ -260,7 +260,7 @@ class TemporalValidator(SignalValidator):
             pickle.dump(state, f)
 
     @classmethod
-    def load(cls, path: str | Path) -> "TemporalValidator":
+    def load(cls, path: str | Path) -> TemporalValidator:
         path = Path(path)
 
         with open(path, "rb") as f:

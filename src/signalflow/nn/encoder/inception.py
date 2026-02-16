@@ -6,6 +6,7 @@ Time Series Classification" (2019). arXiv:1909.04939.
 
 import torch
 import torch.nn as nn
+
 from signalflow import SfTorchModuleMixin, sf_component
 
 

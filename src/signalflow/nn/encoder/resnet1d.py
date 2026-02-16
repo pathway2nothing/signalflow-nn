@@ -6,6 +6,7 @@ Adapted from: He et al. "Deep Residual Learning for Image Recognition"
 
 import torch
 import torch.nn as nn
+
 from signalflow import SfTorchModuleMixin, sf_component
 
 

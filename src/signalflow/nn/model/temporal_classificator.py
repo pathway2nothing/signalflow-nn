@@ -3,15 +3,15 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Literal
 
-import torch
-import torch.nn as nn
 import lightning as L
 import optuna
+import torch
+import torch.nn as nn
 
-from signalflow import SfTorchModuleMixin, sf_component, SfComponentType, default_registry
+from signalflow import SfComponentType, SfTorchModuleMixin, default_registry, sf_component
 
 
 @dataclass
@@ -71,7 +71,7 @@ class TrainingConfig:
         }
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> "TrainingConfig":
+    def from_dict(cls, d: dict[str, Any]) -> TrainingConfig:
         """Create from dictionary."""
         return cls(**{k: v for k, v in d.items() if k in cls.__dataclass_fields__})
 
@@ -479,7 +479,7 @@ class TemporalClassificator(L.LightningModule, SfTorchModuleMixin):
         num_classes: int = 3,
         class_weights: list[float] | None = None,
         training_config: dict[str, Any] | None = None,
-    ) -> "TemporalClassificator":
+    ) -> TemporalClassificator:
         """Create model from config dictionaries.
 
         Convenience factory method that accepts TrainingConfig as dict.

@@ -1,9 +1,9 @@
-import polars as pl
-import numpy as np
 import pickle
-from typing import Dict, List, Optional, Union, Tuple
-from loguru import logger
 from dataclasses import dataclass
+
+import numpy as np
+import polars as pl
+from loguru import logger
 
 
 @dataclass
@@ -20,7 +20,7 @@ class TimeSeriesPreprocessor:
 
     def __init__(
         self,
-        feature_configs: Dict[str, ScalerConfig] = None,
+        feature_configs: dict[str, ScalerConfig] = None,
         default_config: ScalerConfig = ScalerConfig(method="robust", scope="group"),
         time_col: str = "timestamp",
         group_col: str = "asset_id",
@@ -42,10 +42,10 @@ class TimeSeriesPreprocessor:
 
         # State storage for fitted parameters (mean, std, min, max, median, iqr)
         # Structure: { feature_name: { 'global': params, 'groups': { asset_id: params } } }
-        self.fitted_params: Dict[str, Dict] = {}
-        self.feature_names: List[str] = []
+        self.fitted_params: dict[str, dict] = {}
+        self.feature_names: list[str] = []
 
-    def fit(self, df: pl.DataFrame, feature_cols: List[str]) -> "TimeSeriesPreprocessor":
+    def fit(self, df: pl.DataFrame, feature_cols: list[str]) -> "TimeSeriesPreprocessor":
         """
         Computes statistics for scaling based on the training set.
         CRITICAL: Use only TRAINING data here to avoid look-ahead bias.
@@ -136,7 +136,7 @@ class TimeSeriesPreprocessor:
 
     def make_windows(
         self, df: pl.DataFrame, events: pl.DataFrame, window_size: int, future_window: int = 0
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Extracts 3D tensors for neural networks efficiently.
 

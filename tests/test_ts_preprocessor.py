@@ -1,6 +1,5 @@
 """Tests for TimeSeriesPreprocessor."""
 
-import pickle
 import tempfile
 
 import numpy as np
