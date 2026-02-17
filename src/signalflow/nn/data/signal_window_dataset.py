@@ -96,7 +96,7 @@ class SignalWindowDataset(Dataset):
         for signal_row_idx, row in enumerate(signals_df.iter_rows(named=True)):
             pair = row[self.pair_col]
             ts = row[self.ts_col]
-            label = row[self.label_col] if self.label_col in row else 0
+            label = row.get(self.label_col, 0)
 
             if pair not in self.pair_data:
                 skipped_unknown_pair += 1

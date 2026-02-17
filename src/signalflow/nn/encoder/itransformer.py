@@ -156,7 +156,7 @@ class VariableAttention(nn.Module):
 class FeedForward(nn.Module):
     """Feed-forward network."""
 
-    def __init__(self, d_model: int, d_ff: int = None, dropout: float = 0.0):
+    def __init__(self, d_model: int, d_ff: int | None = None, dropout: float = 0.0):
         super().__init__()
         d_ff = d_ff or d_model * 4
         self.linear1 = nn.Linear(d_model, d_ff)
@@ -175,7 +175,7 @@ class iTransformerBlock(nn.Module):
         n_vars: int,
         d_model: int,
         n_heads: int = 8,
-        d_ff: int = None,
+        d_ff: int | None = None,
         dropout: float = 0.1,
     ):
         super().__init__()
@@ -232,7 +232,7 @@ class iTransformerEncoder(nn.Module, SfTorchModuleMixin):
         d_model: int = 64,
         n_heads: int = 8,
         n_layers: int = 3,
-        d_ff: int = None,
+        d_ff: int | None = None,
         dropout: float = 0.1,
         pool: str = "mean",
         **kwargs,
@@ -291,7 +291,7 @@ class iTransformerEncoder(nn.Module, SfTorchModuleMixin):
         Returns:
             Output tensor of shape (batch, d_model)
         """
-        batch, seq_len, n_vars = x.shape
+        batch, _seq_len, _n_vars = x.shape
 
         # Transpose: (B, T, V) -> (B, V, T)
         x = x.transpose(1, 2)

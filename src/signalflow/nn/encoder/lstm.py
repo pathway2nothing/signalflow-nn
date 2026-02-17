@@ -78,7 +78,7 @@ class LSTMEncoder(nn.Module, SfTorchModuleMixin):
         """
         # LSTM output: (batch, seq_len, hidden_size * num_directions)
         # hidden: tuple of (h_n, c_n) where h_n is (num_layers * num_directions, batch, hidden_size)
-        lstm_out, (h_n, c_n) = self.lstm(x)
+        _lstm_out, (h_n, _c_n) = self.lstm(x)
 
         # Take last hidden state from all layers
         if self.bidirectional:

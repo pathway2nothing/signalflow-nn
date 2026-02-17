@@ -57,7 +57,7 @@ class Conv1dEncoder(nn.Module, SfTorchModuleMixin):
 
         layers: list[nn.Module] = []
         in_channels = input_size
-        for filters, kernel in zip(num_filters, kernel_sizes):
+        for filters, kernel in zip(num_filters, kernel_sizes, strict=False):
             layers.append(nn.Conv1d(in_channels, filters, kernel, padding=kernel // 2))
             layers.append(nn.BatchNorm1d(filters))
             layers.append(act_cls())

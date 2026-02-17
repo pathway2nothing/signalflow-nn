@@ -20,8 +20,8 @@ class TimeSeriesPreprocessor:
 
     def __init__(
         self,
-        feature_configs: dict[str, ScalerConfig] = None,
-        default_config: ScalerConfig = ScalerConfig(method="robust", scope="group"),
+        feature_configs: dict[str, ScalerConfig] | None = None,
+        default_config: ScalerConfig | None = None,
         time_col: str = "timestamp",
         group_col: str = "asset_id",
         fill_strategy: str = "forward",
@@ -35,6 +35,8 @@ class TimeSeriesPreprocessor:
             fill_strategy: Strategy to handle NaNs ('forward', 'zero', 'median').
         """
         self.feature_configs = feature_configs or {}
+        if default_config is None:
+            default_config = ScalerConfig(method="robust", scope="group")
         self.default_config = default_config
         self.time_col = time_col
         self.group_col = group_col
@@ -80,7 +82,6 @@ class TimeSeriesPreprocessor:
 
         # 2. Apply Scaling
         # We build a list of expressions to execute lazily if possible
-        expressions = []
 
         # For grouped scaling, we might need to join params.
         # But for performance on large DataFrames, mapping or join is better.
@@ -163,9 +164,7 @@ class TimeSeriesPreprocessor:
         # 3. Slice numpy arrays.
 
         # Check if asset_id is string or int. If string, encode it for performance or use dictionary map.
-        assets = df[self.group_col].unique().to_list()
-        feature_data = {}
-        time_data = {}
+        df[self.group_col].unique().to_list()
 
         # Partition data by asset for O(1) access
         # This is memory intensive but fast. For HUGE data, use lazy slicing.

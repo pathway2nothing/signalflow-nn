@@ -4,7 +4,6 @@ Based on: Nie et al. "A Time Series is Worth 64 Words: Long-term
 Forecasting with Transformers" (2023). arXiv:2211.14730.
 """
 
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

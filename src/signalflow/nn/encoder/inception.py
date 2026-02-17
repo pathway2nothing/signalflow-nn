@@ -61,7 +61,7 @@ class InceptionModule(nn.Module):
         x_bottleneck = self.bottleneck(x)
         conv_outs = [branch(x_bottleneck) for branch in self.conv_branches]
         pool_out = self.maxpool_branch(x)
-        out = torch.cat(conv_outs + [pool_out], dim=1)
+        out = torch.cat([*conv_outs, pool_out], dim=1)
         return self.activation(out)
 
 

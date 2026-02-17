@@ -9,13 +9,13 @@ import lightning as L
 import polars as pl
 import torch
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
+from signalflow.validator import SignalValidator
 
 from signalflow import Signals, sf_component
 from signalflow.nn.data.signal_data_module import SignalDataModule
 from signalflow.nn.data.signal_window_dataset import SignalWindowDataset
 from signalflow.nn.data.ts_preprocessor import TimeSeriesPreprocessor
 from signalflow.nn.model.temporal_classificator import TemporalClassificator, TrainingConfig
-from signalflow.validator import SignalValidator
 
 
 @dataclass
@@ -99,9 +99,8 @@ class TemporalValidator(SignalValidator):
         devices: int | list[int] = 1,
     ) -> TemporalValidator:
 
-        if isinstance(y_train, pl.DataFrame):
-            if "pair" not in y_train.columns or "timestamp" not in y_train.columns:
-                raise ValueError("y_train must contain 'pair' and 'timestamp' columns")
+        if isinstance(y_train, pl.DataFrame) and ("pair" not in y_train.columns or "timestamp" not in y_train.columns):
+            raise ValueError("y_train must contain 'pair' and 'timestamp' columns")
 
         input_size = self._infer_input_size(X_train)
         if "input_size" not in self.encoder_params or self.encoder_params.get("input_size") != input_size:
@@ -174,10 +173,7 @@ class TemporalValidator(SignalValidator):
         signals_df = signals.value
         n_signals = signals_df.height
 
-        if self.preprocessor:
-            processed_features = self.preprocessor.transform(features)
-        else:
-            processed_features = features
+        processed_features = self.preprocessor.transform(features) if self.preprocessor else features
 
         if "label" not in signals_df.columns:
             signals_df_with_label = signals_df.with_columns(pl.lit(0).alias("label"))

@@ -102,7 +102,7 @@ class SelectiveSSM(nn.Module):
         Returns:
             Output tensor of shape (batch, seq_len, d_model)
         """
-        batch, seq_len, _ = x.shape
+        _batch, seq_len, _ = x.shape
 
         # Input projection: split into x and z (gating)
         xz = self.in_proj(x)
@@ -135,7 +135,7 @@ class SelectiveSSM(nn.Module):
         Returns:
             Output tensor of shape (batch, seq_len, d_inner)
         """
-        batch, seq_len, _ = x.shape
+        _batch, _seq_len, _ = x.shape
         d_state = self.d_state
 
         # Compute data-dependent parameters

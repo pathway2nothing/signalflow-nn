@@ -110,10 +110,7 @@ class TransformerEncoder(nn.Module, SfTorchModuleMixin):
         x = self.transformer(x)  # [B, seq', d_model]
         x = self.norm(x)
 
-        if self.pooling == "cls":
-            x = x[:, 0]  # [B, d_model]
-        else:
-            x = x.mean(dim=1)  # [B, d_model]
+        x = x[:, 0] if self.pooling == "cls" else x.mean(dim=1)  # [B, d_model]
 
         return x
 

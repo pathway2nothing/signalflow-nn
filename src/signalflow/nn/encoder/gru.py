@@ -77,7 +77,7 @@ class GRUEncoder(nn.Module, SfTorchModuleMixin):
         Returns:
             Output tensor of shape (batch, output_size)
         """
-        gru_out, h_n = self.gru(x)
+        _gru_out, h_n = self.gru(x)
 
         if self.bidirectional:
             forward = h_n[-2, :, :]

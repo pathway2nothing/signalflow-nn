@@ -16,25 +16,25 @@ from signalflow.nn.encoder.xception import XceptionTimeEncoder
 from signalflow.nn.encoder.xcm import XCMEncoder
 
 __all__ = [
-    # RNN-based
-    "LSTMEncoder",
-    "GRUEncoder",
     # CNN-based
     "Conv1dEncoder",
-    "TCNEncoder",
-    "InceptionTimeEncoder",
-    "ResNet1dEncoder",
-    "XceptionTimeEncoder",
-    "OmniScaleCNNEncoder",
-    # Transformer-based
-    "TransformerEncoder",
-    "PatchTSTEncoder",
     "ConvTranEncoder",
-    "iTransformerEncoder",  # Inverted Transformer (ICLR 2024)
-    # Mixer-based
-    "TSMixerEncoder",
-    "gMLPEncoder",
-    "XCMEncoder",
+    "GRUEncoder",
+    "InceptionTimeEncoder",
+    # RNN-based
+    "LSTMEncoder",
     # State Space Models
     "MambaEncoder",  # Mamba SSM (O(T) complexity)
+    "OmniScaleCNNEncoder",
+    "PatchTSTEncoder",
+    "ResNet1dEncoder",
+    "TCNEncoder",
+    # Mixer-based
+    "TSMixerEncoder",
+    # Transformer-based
+    "TransformerEncoder",
+    "XCMEncoder",
+    "XceptionTimeEncoder",
+    "gMLPEncoder",
+    "iTransformerEncoder",  # Inverted Transformer (ICLR 2024)
 ]
