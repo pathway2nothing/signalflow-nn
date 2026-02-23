@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 import lightning as L
-import optuna
 import torch
 import torch.nn as nn
 
@@ -398,75 +397,57 @@ class TemporalClassificator(L.LightningModule, SfTorchModuleMixin):
         }
 
     @classmethod
-    def tune(
+    def search_space(
         cls,
-        trial: optuna.Trial,
         model_size: Literal["small", "medium", "large"] = "small",
         encoder_type: str = "encoder/lstm",
         input_size: int = 10,
         num_classes: int = 3,
     ) -> dict[str, Any]:
-        """Optuna hyperparameter search space.
+        """Return combined search space for the full model.
 
-        Creates a complete configuration for hyperparameter tuning.
-        Delegates to encoder and head tune() methods.
+        Delegates to encoder and head ``search_space()`` methods and
+        adds training hyperparameters.
 
         Args:
-            trial: Optuna trial object.
             model_size: Size variant ('small', 'medium', 'large').
-            encoder_type: Which encoder to tune.
-            input_size: Number of input features.
-            num_classes: Number of output classes.
+            encoder_type: Which encoder to get search space for.
+            input_size: Number of input features (fixed).
+            num_classes: Number of output classes (fixed).
 
         Returns:
-            Dictionary with full model configuration.
+            Dictionary with encoder_space, head_space, training_space,
+            and fixed values.
 
         Example:
-            >>> import optuna
-            >>>
-            >>> def objective(trial):
-            ...     params = TemporalClassificator.tune(
-            ...         trial,
-            ...         model_size="medium",
-            ...         input_size=20,
-            ...     )
-            ...     model = TemporalClassificator(**params)
-            ...     # ... train and evaluate ...
-            ...     return val_loss
-            >>>
-            >>> study = optuna.create_study(direction="minimize")
-            >>> study.optimize(objective, n_trials=50)
+            >>> space = TemporalClassificator.search_space(
+            ...     model_size="medium",
+            ...     input_size=20,
+            ... )
         """
-        # Get encoder class and tune
         encoder_cls = default_registry.get(SfComponentType.TORCH_MODULE, encoder_type)
-        encoder_params = encoder_cls.tune(trial, model_size=model_size)
-        encoder_params["input_size"] = input_size
+        encoder_space = encoder_cls.search_space(model_size=model_size)
+        encoder_space["input_size"] = input_size
 
-        # Get head type and tune
-        head_type = trial.suggest_categorical("head_type", ["head/cls/mlp", None])
+        head_type = "head/cls/mlp"
+        head_cls = default_registry.get(SfComponentType.TORCH_MODULE, head_type)
+        head_space = head_cls.search_space(model_size=model_size)
 
-        if head_type is not None:
-            head_cls = default_registry.get(SfComponentType.TORCH_MODULE, head_type)
-            head_params = head_cls.tune(trial, model_size=model_size)
-        else:
-            head_params = None
-
-        # Training config
-        training_config = TrainingConfig(
-            learning_rate=trial.suggest_float("learning_rate", 1e-4, 1e-2, log=True),
-            weight_decay=trial.suggest_float("weight_decay", 1e-6, 1e-3, log=True),
-            optimizer=trial.suggest_categorical("optimizer", ["adamw", "adam"]),
-            scheduler=trial.suggest_categorical("scheduler", ["reduce_on_plateau", "cosine"]),
-            label_smoothing=trial.suggest_float("label_smoothing", 0.0, 0.2),
-        )
+        training_space = {
+            "learning_rate": {"type": "float", "low": 1e-4, "high": 1e-2, "log": True},
+            "weight_decay": {"type": "float", "low": 1e-6, "high": 1e-3, "log": True},
+            "optimizer": {"type": "categorical", "choices": ["adamw", "adam"]},
+            "scheduler": {"type": "categorical", "choices": ["reduce_on_plateau", "cosine"]},
+            "label_smoothing": {"type": "float", "low": 0.0, "high": 0.2},
+        }
 
         return {
             "encoder_type": encoder_type,
-            "encoder_params": encoder_params,
-            "head_type": head_type,
-            "head_params": head_params,
+            "encoder_space": encoder_space,
+            "head_type": {"type": "categorical", "choices": ["head/cls/mlp", None]},
+            "head_space": head_space,
             "num_classes": num_classes,
-            "training_config": training_config,
+            "training": training_space,
         }
 
     @classmethod

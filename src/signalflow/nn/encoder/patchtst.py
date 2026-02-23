@@ -162,15 +162,14 @@ class PatchTSTEncoder(nn.Module, SfTorchModuleMixin):
         }
 
     @classmethod
-    def tune(cls, trial, model_size: str = "small") -> dict:
-        """Optuna hyperparameter search space.
+    def search_space(cls, model_size: str = "small") -> dict:
+        """Hyperparameter search space.
 
         Args:
-            trial: Optuna trial object.
             model_size: Size variant ('small', 'medium', 'large').
 
         Returns:
-            Dictionary of hyperparameters.
+            Dictionary of hyperparameters (fixed values or spec dicts).
         """
         size_config = {
             "small": {"d_model": [64, 128], "layers": (2, 3), "ffn": [128, 256]},
@@ -179,20 +178,13 @@ class PatchTSTEncoder(nn.Module, SfTorchModuleMixin):
         }
 
         config = size_config[model_size]
-        d_model = trial.suggest_categorical("patchtst_d_model", config["d_model"])
-        nhead = trial.suggest_categorical("patchtst_nhead", [2, 4, 8])
-        while d_model % nhead != 0:
-            nhead = nhead // 2
-
-        patch_len = trial.suggest_categorical("patchtst_patch_len", [8, 16, 32])
 
         return {
             "input_size": 10,
-            "d_model": d_model,
-            "patch_len": patch_len,
-            "patch_stride": patch_len // 2,
-            "nhead": nhead,
-            "num_layers": trial.suggest_int("patchtst_num_layers", *config["layers"]),
-            "dim_feedforward": trial.suggest_categorical("patchtst_ffn", config["ffn"]),
-            "dropout": trial.suggest_float("patchtst_dropout", 0.0, 0.5),
+            "d_model": {"type": "categorical", "choices": config["d_model"]},
+            "patch_len": {"type": "categorical", "choices": [8, 16, 32]},
+            "nhead": {"type": "categorical", "choices": [2, 4, 8]},
+            "num_layers": {"type": "int", "low": config["layers"][0], "high": config["layers"][1]},
+            "dim_feedforward": {"type": "categorical", "choices": config["ffn"]},
+            "dropout": {"type": "float", "low": 0.0, "high": 0.5},
         }

@@ -207,15 +207,14 @@ class InceptionTimeEncoder(nn.Module, SfTorchModuleMixin):
         }
 
     @classmethod
-    def tune(cls, trial, model_size: str = "small") -> dict:
-        """Optuna hyperparameter search space.
+    def search_space(cls, model_size: str = "small") -> dict:
+        """Hyperparameter search space.
 
         Args:
-            trial: Optuna trial object.
             model_size: Size variant ('small', 'medium', 'large').
 
         Returns:
-            Dictionary of hyperparameters.
+            Dictionary of hyperparameters (fixed values or spec dicts).
         """
         size_config = {
             "small": {
@@ -242,14 +241,14 @@ class InceptionTimeEncoder(nn.Module, SfTorchModuleMixin):
         }
 
         config = size_config[model_size]
-        kernel_idx = trial.suggest_categorical("inception_kernels_idx", [0, 1])
 
         return {
             "input_size": 10,
-            "num_filters": trial.suggest_int("inception_num_filters", *config["filters"]),
-            "kernel_sizes": config["kernels_options"][kernel_idx],
-            "bottleneck_channels": trial.suggest_int("inception_bottleneck", *config["bottleneck"]),
-            "num_blocks": trial.suggest_int("inception_num_blocks", *config["blocks"]),
-            "depth_per_block": trial.suggest_int("inception_depth", *config["depth"]),
-            "dropout": trial.suggest_float("inception_dropout", 0.0, 0.5),
+            "num_filters": {"type": "int", "low": config["filters"][0], "high": config["filters"][1]},
+            "inception_kernels_idx": {"type": "categorical", "choices": [0, 1]},
+            "kernels_options": config["kernels_options"],
+            "bottleneck_channels": {"type": "int", "low": config["bottleneck"][0], "high": config["bottleneck"][1]},
+            "num_blocks": {"type": "int", "low": config["blocks"][0], "high": config["blocks"][1]},
+            "depth_per_block": {"type": "int", "low": config["depth"][0], "high": config["depth"][1]},
+            "dropout": {"type": "float", "low": 0.0, "high": 0.5},
         }

@@ -1,7 +1,4 @@
 # signalflow.nn/heads/residual_head.py
-from typing import Literal
-
-import optuna
 import torch
 import torch.nn as nn
 
@@ -95,8 +92,8 @@ class ResidualClassifierHead(nn.Module, SfTorchModuleMixin):
         }
 
     @classmethod
-    def tune(cls, trial: optuna.Trial, model_size: Literal["small", "medium", "large"] = "small") -> dict:
-        """Optuna hyperparameter search space."""
+    def search_space(cls, model_size: str = "small") -> dict:
+        """Hyperparameter search space."""
         size_config = {
             "small": {"dim_range": (64, 128), "blocks_range": (1, 2)},
             "medium": {"dim_range": (128, 256), "blocks_range": (2, 3)},
@@ -106,7 +103,7 @@ class ResidualClassifierHead(nn.Module, SfTorchModuleMixin):
         config = size_config[model_size]
 
         return {
-            "hidden_dim": trial.suggest_int("head_hidden_dim", *config["dim_range"]),
-            "num_blocks": trial.suggest_int("head_num_blocks", *config["blocks_range"]),
-            "dropout": trial.suggest_float("head_dropout", 0.1, 0.4),
+            "hidden_dim": {"type": "int", "low": config["dim_range"][0], "high": config["dim_range"][1]},
+            "num_blocks": {"type": "int", "low": config["blocks_range"][0], "high": config["blocks_range"][1]},
+            "dropout": {"type": "float", "low": 0.1, "high": 0.4},
         }

@@ -103,15 +103,14 @@ class Conv1dEncoder(nn.Module, SfTorchModuleMixin):
         }
 
     @classmethod
-    def tune(cls, trial, model_size: str = "small") -> dict:
-        """Optuna hyperparameter search space.
+    def search_space(cls, model_size: str = "small") -> dict:
+        """Hyperparameter search space.
 
         Args:
-            trial: Optuna trial object.
             model_size: Size variant ('small', 'medium', 'large').
 
         Returns:
-            Dictionary of hyperparameters.
+            Dictionary of hyperparameters (fixed values or spec dicts).
         """
         size_config = {
             "small": {"max_layers": 2, "filters": (32, 64), "kernels": [3, 5]},
@@ -120,15 +119,13 @@ class Conv1dEncoder(nn.Module, SfTorchModuleMixin):
         }
 
         config = size_config[model_size]
-        num_layers = trial.suggest_int("conv1d_num_layers", 1, config["max_layers"])
-        filter_size = trial.suggest_int("conv1d_filters", *config["filters"])
-        num_filters = [filter_size * (2**i) for i in range(num_layers)]
 
         return {
             "input_size": 10,
-            "num_filters": num_filters,
-            "kernel_sizes": trial.suggest_categorical("conv1d_kernel_size", config["kernels"]),
-            "dropout": trial.suggest_float("conv1d_dropout", 0.0, 0.5),
-            "use_pooling": trial.suggest_categorical("conv1d_use_pooling", [False, True]),
-            "activation": trial.suggest_categorical("conv1d_activation", ["relu", "gelu", "silu"]),
+            "conv1d_num_layers": {"type": "int", "low": 1, "high": config["max_layers"]},
+            "conv1d_filters": {"type": "int", "low": config["filters"][0], "high": config["filters"][1]},
+            "kernel_sizes": {"type": "categorical", "choices": config["kernels"]},
+            "dropout": {"type": "float", "low": 0.0, "high": 0.5},
+            "use_pooling": {"type": "categorical", "choices": [False, True]},
+            "activation": {"type": "categorical", "choices": ["relu", "gelu", "silu"]},
         }

@@ -127,15 +127,14 @@ class XCMEncoder(nn.Module, SfTorchModuleMixin):
         }
 
     @classmethod
-    def tune(cls, trial, model_size: str = "small") -> dict:
-        """Optuna hyperparameter search space.
+    def search_space(cls, model_size: str = "small") -> dict:
+        """Hyperparameter search space.
 
         Args:
-            trial: Optuna trial object.
             model_size: Size variant ('small', 'medium', 'large').
 
         Returns:
-            Dictionary of hyperparameters.
+            Dictionary of hyperparameter specs.
         """
         size_config = {
             "small": {"filters": (32, 64), "d_model": [64, 128]},
@@ -148,10 +147,10 @@ class XCMEncoder(nn.Module, SfTorchModuleMixin):
         return {
             "input_size": 10,
             "seq_len": 60,
-            "num_filters_time": trial.suggest_int("xcm_filters_time", *config["filters"]),
-            "num_filters_space": trial.suggest_int("xcm_filters_space", *config["filters"]),
-            "kernel_size_time": trial.suggest_categorical("xcm_kernel_time", [3, 5, 7]),
-            "kernel_size_space": trial.suggest_categorical("xcm_kernel_space", [3, 5]),
-            "d_model": trial.suggest_categorical("xcm_d_model", config["d_model"]),
-            "dropout": trial.suggest_float("xcm_dropout", 0.0, 0.5),
+            "num_filters_time": {"type": "int", "low": config["filters"][0], "high": config["filters"][1]},
+            "num_filters_space": {"type": "int", "low": config["filters"][0], "high": config["filters"][1]},
+            "kernel_size_time": {"type": "categorical", "choices": [3, 5, 7]},
+            "kernel_size_space": {"type": "categorical", "choices": [3, 5]},
+            "d_model": {"type": "categorical", "choices": config["d_model"]},
+            "dropout": {"type": "float", "low": 0.0, "high": 0.5},
         }

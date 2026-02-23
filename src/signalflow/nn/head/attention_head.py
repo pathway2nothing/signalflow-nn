@@ -1,9 +1,6 @@
 # signalflow.nn/heads/attention_head.py
 """Self-attention based classification head."""
 
-from typing import Literal
-
-import optuna
 import torch
 import torch.nn as nn
 
@@ -104,8 +101,8 @@ class AttentionClassifierHead(nn.Module, SfTorchModuleMixin):
         }
 
     @classmethod
-    def tune(cls, trial: optuna.Trial, model_size: Literal["small", "medium", "large"] = "small") -> dict:
-        """Optuna hyperparameter search space."""
+    def search_space(cls, model_size: str = "small") -> dict:
+        """Hyperparameter search space."""
         size_config = {
             "small": {"dim_range": (64, 128), "heads": [2, 4]},
             "medium": {"dim_range": (128, 256), "heads": [4, 8]},
@@ -114,14 +111,8 @@ class AttentionClassifierHead(nn.Module, SfTorchModuleMixin):
 
         config = size_config[model_size]
 
-        num_heads = trial.suggest_categorical("head_num_heads", config["heads"])
-        base_dim = trial.suggest_int(
-            "head_hidden_base", config["dim_range"][0] // num_heads, config["dim_range"][1] // num_heads
-        )
-        hidden_dim = base_dim * num_heads
-
         return {
-            "num_heads": num_heads,
-            "hidden_dim": hidden_dim,
-            "dropout": trial.suggest_float("head_dropout", 0.1, 0.4),
+            "num_heads": {"type": "categorical", "choices": config["heads"]},
+            "hidden_dim": {"type": "int", "low": config["dim_range"][0], "high": config["dim_range"][1]},
+            "dropout": {"type": "float", "low": 0.1, "high": 0.4},
         }

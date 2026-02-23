@@ -3,7 +3,6 @@
 
 from typing import Literal
 
-import optuna
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -116,8 +115,8 @@ class DistributionHead(nn.Module, SfTorchModuleMixin):
         }
 
     @classmethod
-    def tune(cls, trial: optuna.Trial, model_size: Literal["small", "medium", "large"] = "small") -> dict:
-        """Optuna hyperparameter search space."""
+    def search_space(cls, model_size: str = "small") -> dict:
+        """Hyperparameter search space."""
         size_config = {
             "small": {"hidden_range": (64, 128), "max_layers": 2},
             "medium": {"hidden_range": (128, 256), "max_layers": 2},
@@ -126,12 +125,10 @@ class DistributionHead(nn.Module, SfTorchModuleMixin):
 
         config = size_config[model_size]
 
-        num_layers = trial.suggest_int("head_num_layers", 1, config["max_layers"])
-        hidden_sizes = [trial.suggest_int(f"head_hidden_{i}", *config["hidden_range"]) for i in range(num_layers)]
-
         return {
-            "hidden_sizes": hidden_sizes,
-            "dropout": trial.suggest_float("head_dropout", 0.1, 0.4),
-            "temperature": trial.suggest_float("head_temperature", 0.5, 2.0),
+            "num_layers": {"type": "int", "low": 1, "high": config["max_layers"]},
+            "hidden_size": {"type": "int", "low": config["hidden_range"][0], "high": config["hidden_range"][1]},
+            "dropout": {"type": "float", "low": 0.1, "high": 0.4},
+            "temperature": {"type": "float", "low": 0.5, "high": 2.0},
             "output_type": "prob",
         }

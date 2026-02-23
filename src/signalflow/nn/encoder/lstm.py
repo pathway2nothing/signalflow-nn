@@ -105,15 +105,14 @@ class LSTMEncoder(nn.Module, SfTorchModuleMixin):
         }
 
     @classmethod
-    def tune(cls, trial, model_size: str = "small") -> dict:
-        """Optuna hyperparameter search space.
+    def search_space(cls, model_size: str = "small") -> dict:
+        """Hyperparameter search space.
 
         Args:
-            trial: Optuna trial object
             model_size: Size variant ('small', 'medium', 'large')
 
         Returns:
-            Dictionary of hyperparameters
+            Dictionary of hyperparameters (fixed values or spec dicts)
         """
         size_config = {
             "small": {"hidden": (32, 64), "layers": (1, 2)},
@@ -124,9 +123,9 @@ class LSTMEncoder(nn.Module, SfTorchModuleMixin):
         config = size_config[model_size]
 
         return {
-            "input_size": 10,  # Fixed, depends on features
-            "hidden_size": trial.suggest_int("hidden_size", *config["hidden"]),
-            "num_layers": trial.suggest_int("num_layers", *config["layers"]),
-            "dropout": trial.suggest_float("dropout", 0.0, 0.5),
-            "bidirectional": trial.suggest_categorical("bidirectional", [False, True]),
+            "input_size": 10,
+            "hidden_size": {"type": "int", "low": config["hidden"][0], "high": config["hidden"][1]},
+            "num_layers": {"type": "int", "low": config["layers"][0], "high": config["layers"][1]},
+            "dropout": {"type": "float", "low": 0.0, "high": 0.5},
+            "bidirectional": {"type": "categorical", "choices": [False, True]},
         }

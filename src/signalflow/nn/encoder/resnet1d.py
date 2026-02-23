@@ -150,15 +150,14 @@ class ResNet1dEncoder(nn.Module, SfTorchModuleMixin):
         }
 
     @classmethod
-    def tune(cls, trial, model_size: str = "small") -> dict:
-        """Optuna hyperparameter search space.
+    def search_space(cls, model_size: str = "small") -> dict:
+        """Hyperparameter search space.
 
         Args:
-            trial: Optuna trial object.
             model_size: Size variant ('small', 'medium', 'large').
 
         Returns:
-            Dictionary of hyperparameters.
+            Dictionary of hyperparameters (fixed values or spec dicts).
         """
         size_config = {
             "small": {"filters": (32, 64), "blocks_options": [[1, 1], [2, 2], [2, 2, 2]]},
@@ -167,12 +166,12 @@ class ResNet1dEncoder(nn.Module, SfTorchModuleMixin):
         }
 
         config = size_config[model_size]
-        blocks_idx = trial.suggest_int("resnet1d_blocks_idx", 0, len(config["blocks_options"]) - 1)
 
         return {
             "input_size": 10,
-            "base_filters": trial.suggest_int("resnet1d_base_filters", *config["filters"]),
-            "num_blocks": config["blocks_options"][blocks_idx],
-            "kernel_size": trial.suggest_categorical("resnet1d_kernel_size", [3, 5, 7]),
-            "dropout": trial.suggest_float("resnet1d_dropout", 0.0, 0.5),
+            "base_filters": {"type": "int", "low": config["filters"][0], "high": config["filters"][1]},
+            "resnet1d_blocks_idx": {"type": "int", "low": 0, "high": len(config["blocks_options"]) - 1},
+            "blocks_options": config["blocks_options"],
+            "kernel_size": {"type": "categorical", "choices": [3, 5, 7]},
+            "dropout": {"type": "float", "low": 0.0, "high": 0.5},
         }

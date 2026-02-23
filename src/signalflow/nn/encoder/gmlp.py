@@ -173,15 +173,14 @@ class gMLPEncoder(nn.Module, SfTorchModuleMixin):
         }
 
     @classmethod
-    def tune(cls, trial, model_size: str = "small") -> dict:
-        """Optuna hyperparameter search space.
+    def search_space(cls, model_size: str = "small") -> dict:
+        """Hyperparameter search space.
 
         Args:
-            trial: Optuna trial object.
             model_size: Size variant ('small', 'medium', 'large').
 
         Returns:
-            Dictionary of hyperparameters.
+            Dictionary of hyperparameters (fixed values or spec dicts).
         """
         size_config = {
             "small": {"d_model": [64, 128], "d_ffn": [128, 256], "layers": (2, 4)},
@@ -194,8 +193,8 @@ class gMLPEncoder(nn.Module, SfTorchModuleMixin):
         return {
             "input_size": 10,
             "seq_len": 60,
-            "d_model": trial.suggest_categorical("gmlp_d_model", config["d_model"]),
-            "d_ffn": trial.suggest_categorical("gmlp_d_ffn", config["d_ffn"]),
-            "num_layers": trial.suggest_int("gmlp_num_layers", *config["layers"]),
-            "dropout": trial.suggest_float("gmlp_dropout", 0.0, 0.5),
+            "d_model": {"type": "categorical", "choices": config["d_model"]},
+            "d_ffn": {"type": "categorical", "choices": config["d_ffn"]},
+            "num_layers": {"type": "int", "low": config["layers"][0], "high": config["layers"][1]},
+            "dropout": {"type": "float", "low": 0.0, "high": 0.5},
         }

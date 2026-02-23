@@ -1,8 +1,5 @@
 """Simple linear classification head."""
 
-from typing import Literal
-
-import optuna
 import torch
 import torch.nn as nn
 
@@ -60,8 +57,8 @@ class LinearClassifierHead(nn.Module, SfTorchModuleMixin):
         }
 
     @classmethod
-    def tune(cls, trial: optuna.Trial, model_size: Literal["small", "medium", "large"] = "small") -> dict:
-        """Optuna hyperparameter search space (minimal for linear)."""
+    def search_space(cls, model_size: str = "small") -> dict:
+        """Hyperparameter search space (minimal for linear)."""
         return {
-            "bias": trial.suggest_categorical("head_bias", [True, False]),
+            "bias": {"type": "categorical", "choices": [True, False]},
         }

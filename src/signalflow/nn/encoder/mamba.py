@@ -345,15 +345,14 @@ class MambaEncoder(nn.Module, SfTorchModuleMixin):
         }
 
     @classmethod
-    def tune(cls, trial, model_size: str = "small") -> dict:
-        """Optuna hyperparameter search space.
+    def search_space(cls, model_size: str = "small") -> dict:
+        """Hyperparameter search space.
 
         Args:
-            trial: Optuna trial object
             model_size: Size variant ('small', 'medium', 'large')
 
         Returns:
-            Dictionary of hyperparameters
+            Dictionary of hyperparameters (fixed values or spec dicts)
         """
         size_config = {
             "small": {"d_model": (32, 64), "n_layers": (2, 4)},
@@ -364,12 +363,12 @@ class MambaEncoder(nn.Module, SfTorchModuleMixin):
         config = size_config[model_size]
 
         return {
-            "input_size": 10,  # Fixed, depends on features
-            "d_model": trial.suggest_int("d_model", *config["d_model"], step=16),
-            "d_state": trial.suggest_int("d_state", 8, 32, step=8),
-            "d_conv": trial.suggest_int("d_conv", 2, 6),
-            "expand": trial.suggest_int("expand", 1, 4),
-            "n_layers": trial.suggest_int("n_layers", *config["n_layers"]),
-            "dropout": trial.suggest_float("dropout", 0.0, 0.3),
-            "pool": trial.suggest_categorical("pool", ["last", "mean"]),
+            "input_size": 10,
+            "d_model": {"type": "int", "low": config["d_model"][0], "high": config["d_model"][1], "step": 16},
+            "d_state": {"type": "int", "low": 8, "high": 32, "step": 8},
+            "d_conv": {"type": "int", "low": 2, "high": 6},
+            "expand": {"type": "int", "low": 1, "high": 4},
+            "n_layers": {"type": "int", "low": config["n_layers"][0], "high": config["n_layers"][1]},
+            "dropout": {"type": "float", "low": 0.0, "high": 0.3},
+            "pool": {"type": "categorical", "choices": ["last", "mean"]},
         }

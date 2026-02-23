@@ -145,15 +145,14 @@ class OmniScaleCNNEncoder(nn.Module, SfTorchModuleMixin):
         }
 
     @classmethod
-    def tune(cls, trial, model_size: str = "small") -> dict:
-        """Optuna hyperparameter search space.
+    def search_space(cls, model_size: str = "small") -> dict:
+        """Hyperparameter search space.
 
         Args:
-            trial: Optuna trial object.
             model_size: Size variant ('small', 'medium', 'large').
 
         Returns:
-            Dictionary of hyperparameters.
+            Dictionary of hyperparameters (fixed values or spec dicts).
         """
         size_config = {
             "small": {"filters": (32, 64), "blocks": (2, 3)},
@@ -162,7 +161,6 @@ class OmniScaleCNNEncoder(nn.Module, SfTorchModuleMixin):
         }
 
         config = size_config[model_size]
-        rf_idx = trial.suggest_int("omniscale_rf_idx", 0, 2)
         rf_options = [
             [3, 5, 7, 11],
             [3, 5, 7, 11, 15, 21],
@@ -171,8 +169,9 @@ class OmniScaleCNNEncoder(nn.Module, SfTorchModuleMixin):
 
         return {
             "input_size": 10,
-            "num_filters": trial.suggest_int("omniscale_num_filters", *config["filters"]),
-            "num_blocks": trial.suggest_int("omniscale_num_blocks", *config["blocks"]),
-            "receptive_field_sizes": rf_options[rf_idx],
-            "dropout": trial.suggest_float("omniscale_dropout", 0.0, 0.5),
+            "num_filters": {"type": "int", "low": config["filters"][0], "high": config["filters"][1]},
+            "num_blocks": {"type": "int", "low": config["blocks"][0], "high": config["blocks"][1]},
+            "omniscale_rf_idx": {"type": "int", "low": 0, "high": 2},
+            "rf_options": rf_options,
+            "dropout": {"type": "float", "low": 0.0, "high": 0.5},
         }

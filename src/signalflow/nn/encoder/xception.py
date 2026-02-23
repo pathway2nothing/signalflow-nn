@@ -179,15 +179,14 @@ class XceptionTimeEncoder(nn.Module, SfTorchModuleMixin):
         }
 
     @classmethod
-    def tune(cls, trial, model_size: str = "small") -> dict:
-        """Optuna hyperparameter search space.
+    def search_space(cls, model_size: str = "small") -> dict:
+        """Hyperparameter search space.
 
         Args:
-            trial: Optuna trial object.
             model_size: Size variant ('small', 'medium', 'large').
 
         Returns:
-            Dictionary of hyperparameters.
+            Dictionary of hyperparameters (fixed values or spec dicts).
         """
         size_config = {
             "small": {"filters": (32, 64), "blocks": (2, 3)},
@@ -199,8 +198,8 @@ class XceptionTimeEncoder(nn.Module, SfTorchModuleMixin):
 
         return {
             "input_size": 10,
-            "num_filters": trial.suggest_int("xception_num_filters", *config["filters"]),
-            "num_blocks": trial.suggest_int("xception_num_blocks", *config["blocks"]),
-            "kernel_size": trial.suggest_categorical("xception_kernel_size", [15, 25, 39, 51]),
-            "dropout": trial.suggest_float("xception_dropout", 0.0, 0.5),
+            "num_filters": {"type": "int", "low": config["filters"][0], "high": config["filters"][1]},
+            "num_blocks": {"type": "int", "low": config["blocks"][0], "high": config["blocks"][1]},
+            "kernel_size": {"type": "categorical", "choices": [15, 25, 39, 51]},
+            "dropout": {"type": "float", "low": 0.0, "high": 0.5},
         }

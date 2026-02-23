@@ -159,15 +159,14 @@ class TCNEncoder(nn.Module, SfTorchModuleMixin):
         }
 
     @classmethod
-    def tune(cls, trial, model_size: str = "small") -> dict:
-        """Optuna hyperparameter search space.
+    def search_space(cls, model_size: str = "small") -> dict:
+        """Hyperparameter search space.
 
         Args:
-            trial: Optuna trial object.
             model_size: Size variant ('small', 'medium', 'large').
 
         Returns:
-            Dictionary of hyperparameters.
+            Dictionary of hyperparameters (fixed values or spec dicts).
         """
         size_config = {
             "small": {"max_blocks": 3, "channels": (32, 64), "kernels": [3, 5]},
@@ -176,12 +175,11 @@ class TCNEncoder(nn.Module, SfTorchModuleMixin):
         }
 
         config = size_config[model_size]
-        num_blocks = trial.suggest_int("tcn_num_blocks", 2, config["max_blocks"])
-        channel_size = trial.suggest_int("tcn_channel_size", *config["channels"])
 
         return {
             "input_size": 10,
-            "num_channels": [channel_size] * num_blocks,
-            "kernel_size": trial.suggest_categorical("tcn_kernel_size", config["kernels"]),
-            "dropout": trial.suggest_float("tcn_dropout", 0.0, 0.5),
+            "tcn_num_blocks": {"type": "int", "low": 2, "high": config["max_blocks"]},
+            "tcn_channel_size": {"type": "int", "low": config["channels"][0], "high": config["channels"][1]},
+            "kernel_size": {"type": "categorical", "choices": config["kernels"]},
+            "dropout": {"type": "float", "low": 0.0, "high": 0.5},
         }

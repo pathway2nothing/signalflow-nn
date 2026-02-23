@@ -2,7 +2,6 @@
 
 from typing import Literal
 
-import optuna
 import torch
 import torch.nn as nn
 
@@ -98,8 +97,8 @@ class MLPClassifierHead(nn.Module, SfTorchModuleMixin):
         }
 
     @classmethod
-    def tune(cls, trial: optuna.Trial, model_size: Literal["small", "medium", "large"] = "small") -> dict:
-        """Optuna hyperparameter search space."""
+    def search_space(cls, model_size: str = "small") -> dict:
+        """Hyperparameter search space."""
         size_config = {
             "small": {"hidden_range": (32, 128), "max_layers": 2},
             "medium": {"hidden_range": (64, 256), "max_layers": 3},
@@ -108,15 +107,9 @@ class MLPClassifierHead(nn.Module, SfTorchModuleMixin):
 
         config = size_config[model_size]
 
-        num_layers = trial.suggest_int("head_num_layers", 0, config["max_layers"])
-        hidden_sizes = []
-
-        for i in range(num_layers):
-            size = trial.suggest_int(f"head_hidden_{i}", *config["hidden_range"])
-            hidden_sizes.append(size)
-
         return {
-            "hidden_sizes": hidden_sizes,
-            "dropout": trial.suggest_float("head_dropout", 0.1, 0.5),
-            "activation": trial.suggest_categorical("head_activation", ["relu", "gelu", "silu"]),
+            "num_layers": {"type": "int", "low": 0, "high": config["max_layers"]},
+            "hidden_size": {"type": "int", "low": config["hidden_range"][0], "high": config["hidden_range"][1]},
+            "dropout": {"type": "float", "low": 0.1, "high": 0.5},
+            "activation": {"type": "categorical", "choices": ["relu", "gelu", "silu"]},
         }

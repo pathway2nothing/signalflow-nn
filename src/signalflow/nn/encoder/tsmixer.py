@@ -150,15 +150,14 @@ class TSMixerEncoder(nn.Module, SfTorchModuleMixin):
         }
 
     @classmethod
-    def tune(cls, trial, model_size: str = "small") -> dict:
-        """Optuna hyperparameter search space.
+    def search_space(cls, model_size: str = "small") -> dict:
+        """Hyperparameter search space.
 
         Args:
-            trial: Optuna trial object.
             model_size: Size variant ('small', 'medium', 'large').
 
         Returns:
-            Dictionary of hyperparameters.
+            Dictionary of hyperparameters (fixed values or spec dicts).
         """
         size_config = {
             "small": {"d_model": [64, 128], "layers": (2, 4), "expansion": [2, 3]},
@@ -171,8 +170,8 @@ class TSMixerEncoder(nn.Module, SfTorchModuleMixin):
         return {
             "input_size": 10,
             "seq_len": 60,
-            "d_model": trial.suggest_categorical("tsmixer_d_model", config["d_model"]),
-            "num_layers": trial.suggest_int("tsmixer_num_layers", *config["layers"]),
-            "expansion_factor": trial.suggest_categorical("tsmixer_expansion", config["expansion"]),
-            "dropout": trial.suggest_float("tsmixer_dropout", 0.1, 0.5),
+            "d_model": {"type": "categorical", "choices": config["d_model"]},
+            "num_layers": {"type": "int", "low": config["layers"][0], "high": config["layers"][1]},
+            "expansion_factor": {"type": "categorical", "choices": config["expansion"]},
+            "dropout": {"type": "float", "low": 0.1, "high": 0.5},
         }

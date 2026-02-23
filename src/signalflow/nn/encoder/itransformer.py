@@ -339,34 +339,29 @@ class iTransformerEncoder(nn.Module, SfTorchModuleMixin):
         }
 
     @classmethod
-    def tune(cls, trial, model_size: str = "small") -> dict:
-        """Optuna hyperparameter search space.
+    def search_space(cls, model_size: str = "small") -> dict:
+        """Hyperparameter search space.
 
         Args:
-            trial: Optuna trial object
             model_size: Size variant ('small', 'medium', 'large')
 
         Returns:
-            Dictionary of hyperparameters
+            Dictionary of hyperparameters (fixed values or spec dicts)
         """
         size_config = {
-            "small": {"d_model": (32, 64), "n_layers": (2, 3), "n_heads": (4, 8)},
-            "medium": {"d_model": (64, 128), "n_layers": (3, 4), "n_heads": (8, 8)},
-            "large": {"d_model": (128, 256), "n_layers": (4, 6), "n_heads": (8, 16)},
+            "small": {"d_model": (32, 64), "n_layers": (2, 3)},
+            "medium": {"d_model": (64, 128), "n_layers": (3, 4)},
+            "large": {"d_model": (128, 256), "n_layers": (4, 6)},
         }
 
         config = size_config[model_size]
-        d_model = trial.suggest_int("d_model", *config["d_model"], step=16)
-
-        # Ensure n_heads divides d_model
-        n_heads = trial.suggest_categorical("n_heads", [h for h in [4, 8, 16] if d_model % h == 0])
 
         return {
-            "input_size": 10,  # Fixed, depends on features
-            "seq_len": 60,  # Fixed, depends on data
-            "d_model": d_model,
-            "n_heads": n_heads,
-            "n_layers": trial.suggest_int("n_layers", *config["n_layers"]),
-            "dropout": trial.suggest_float("dropout", 0.0, 0.3),
-            "pool": trial.suggest_categorical("pool", ["mean", "cls"]),
+            "input_size": 10,
+            "seq_len": 60,
+            "d_model": {"type": "int", "low": config["d_model"][0], "high": config["d_model"][1], "step": 16},
+            "n_heads": {"type": "categorical", "choices": [4, 8, 16]},
+            "n_layers": {"type": "int", "low": config["n_layers"][0], "high": config["n_layers"][1]},
+            "dropout": {"type": "float", "low": 0.0, "high": 0.3},
+            "pool": {"type": "categorical", "choices": ["mean", "cls"]},
         }
