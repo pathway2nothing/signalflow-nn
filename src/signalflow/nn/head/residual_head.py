@@ -2,7 +2,8 @@
 import torch
 import torch.nn as nn
 
-from signalflow import SfTorchModuleMixin, sf_component
+from signalflow import SfTorchModuleMixin
+from signalflow.core import register
 
 
 class ResidualBlock(nn.Module):
@@ -23,7 +24,7 @@ class ResidualBlock(nn.Module):
         return self.norm(x + self.net(x))
 
 
-@sf_component(name="head/cls/residual")
+@register("head/cls/residual")
 class ResidualClassifierHead(nn.Module, SfTorchModuleMixin):
     """Residual MLP classification head.
 

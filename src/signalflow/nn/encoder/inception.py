@@ -7,7 +7,8 @@ Time Series Classification" (2019). arXiv:1909.04939.
 import torch
 import torch.nn as nn
 
-from signalflow import SfTorchModuleMixin, sf_component
+from signalflow import SfTorchModuleMixin
+from signalflow.core import feature
 
 
 class InceptionModule(nn.Module):
@@ -111,7 +112,7 @@ class InceptionResidualBlock(nn.Module):
         return self.activation(out)
 
 
-@sf_component(name="encoder/inception")
+@feature("encoder/inception")
 class InceptionTimeEncoder(nn.Module, SfTorchModuleMixin):
     """InceptionTime encoder for sequence processing.
 

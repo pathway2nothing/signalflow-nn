@@ -7,7 +7,8 @@ and Recurrent Networks for Sequence Modeling" (2018).
 import torch
 import torch.nn as nn
 
-from signalflow import SfTorchModuleMixin, sf_component
+from signalflow import SfTorchModuleMixin
+from signalflow.core import feature
 
 
 class Chomp1d(nn.Module):
@@ -71,7 +72,7 @@ class TemporalBlock(nn.Module):
         return self.relu(out + res)
 
 
-@sf_component(name="encoder/tcn")
+@feature("encoder/tcn")
 class TCNEncoder(nn.Module, SfTorchModuleMixin):
     """Temporal Convolutional Network encoder for sequence processing.
 

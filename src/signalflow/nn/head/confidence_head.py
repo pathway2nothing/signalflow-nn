@@ -4,10 +4,11 @@
 import torch
 import torch.nn as nn
 
-from signalflow import SfTorchModuleMixin, sf_component
+from signalflow import SfTorchModuleMixin
+from signalflow.core import register
 
 
-@sf_component(name="head/multi/cls_conf")
+@register("head/multi/cls_conf")
 class ClassificationWithConfidenceHead(nn.Module, SfTorchModuleMixin):
     """Classification head with confidence estimation.
 

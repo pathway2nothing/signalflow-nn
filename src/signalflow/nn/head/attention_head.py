@@ -4,10 +4,11 @@
 import torch
 import torch.nn as nn
 
-from signalflow import SfTorchModuleMixin, sf_component
+from signalflow import SfTorchModuleMixin
+from signalflow.core import register
 
 
-@sf_component(name="head/cls/attention")
+@register("head/cls/attention")
 class AttentionClassifierHead(nn.Module, SfTorchModuleMixin):
     """Self-attention based classification head.
 

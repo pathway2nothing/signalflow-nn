@@ -10,7 +10,8 @@ import lightning as L
 import torch
 import torch.nn as nn
 
-from signalflow import SfComponentType, SfTorchModuleMixin, default_registry, sf_component
+from signalflow import SfComponentType, SfTorchModuleMixin, default_registry
+from signalflow.core import register
 
 
 @dataclass
@@ -75,7 +76,7 @@ class TrainingConfig:
         return cls(**{k: v for k, v in d.items() if k in cls.__dataclass_fields__})
 
 
-@sf_component(name="temporal_classifier")
+@register("temporal_classifier")
 class TemporalClassificator(L.LightningModule, SfTorchModuleMixin):
     """Temporal signal classifier: Encoder + Classification Head.
 

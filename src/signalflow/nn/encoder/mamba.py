@@ -13,7 +13,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from signalflow import SfTorchModuleMixin, sf_component
+from signalflow import SfTorchModuleMixin
+from signalflow.core import feature
 
 
 class SelectiveSSM(nn.Module):
@@ -227,7 +228,7 @@ class MambaBlock(nn.Module):
         return x + self.dropout(self.mamba(self.norm(x)))
 
 
-@sf_component(name="encoder/mamba")
+@feature("encoder/mamba")
 class MambaEncoder(nn.Module, SfTorchModuleMixin):
     """Mamba encoder for efficient temporal sequence modeling.
 

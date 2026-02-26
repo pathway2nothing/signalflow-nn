@@ -7,10 +7,11 @@ for Multivariate Time Series Classification" (2021). arXiv:2009.04796.
 import torch
 import torch.nn as nn
 
-from signalflow import SfTorchModuleMixin, sf_component
+from signalflow import SfTorchModuleMixin
+from signalflow.core import feature
 
 
-@sf_component(name="encoder/xcm")
+@feature("encoder/xcm")
 class XCMEncoder(nn.Module, SfTorchModuleMixin):
     """XCM encoder for sequence processing.
 

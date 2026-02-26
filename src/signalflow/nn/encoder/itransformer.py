@@ -14,7 +14,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from signalflow import SfTorchModuleMixin, sf_component
+from signalflow import SfTorchModuleMixin
+from signalflow.core import feature
 
 
 class InvertedMultiHeadAttention(nn.Module):
@@ -197,7 +198,7 @@ class iTransformerBlock(nn.Module):
         return x
 
 
-@sf_component(name="encoder/itransformer")
+@feature("encoder/itransformer")
 class iTransformerEncoder(nn.Module, SfTorchModuleMixin):
     """iTransformer encoder for time series classification.
 

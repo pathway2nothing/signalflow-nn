@@ -3,10 +3,11 @@
 import torch
 import torch.nn as nn
 
-from signalflow import SfTorchModuleMixin, sf_component
+from signalflow import SfTorchModuleMixin
+from signalflow.core import register
 
 
-@sf_component(name="head/cls/linear")
+@register("head/cls/linear")
 class LinearClassifierHead(nn.Module, SfTorchModuleMixin):
     """Simple linear classification head.
 

@@ -8,7 +8,8 @@ ICLR 2022.
 import torch
 import torch.nn as nn
 
-from signalflow import SfTorchModuleMixin, sf_component
+from signalflow import SfTorchModuleMixin
+from signalflow.core import feature
 
 
 class OmniScaleBlock(nn.Module):
@@ -66,7 +67,7 @@ class OmniScaleBlock(nn.Module):
         return self.dropout(out)
 
 
-@sf_component(name="encoder/omniscale")
+@feature("encoder/omniscale")
 class OmniScaleCNNEncoder(nn.Module, SfTorchModuleMixin):
     """OmniScale CNN encoder for sequence processing.
 

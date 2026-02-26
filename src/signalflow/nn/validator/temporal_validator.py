@@ -11,7 +11,8 @@ import torch
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 from signalflow.validator import SignalValidator
 
-from signalflow import Signals, sf_component
+from signalflow import Signals
+from signalflow.core import validator
 from signalflow.nn.data.signal_data_module import SignalDataModule
 from signalflow.nn.data.signal_window_dataset import SignalWindowDataset
 from signalflow.nn.data.ts_preprocessor import TimeSeriesPreprocessor
@@ -19,7 +20,7 @@ from signalflow.nn.model.temporal_classificator import TemporalClassificator, Tr
 
 
 @dataclass
-@sf_component(name="temporal_validator")
+@validator("temporal_validator")
 class TemporalValidator(SignalValidator):
     """Temporal signal validator using deep learning."""
 

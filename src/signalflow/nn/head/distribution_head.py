@@ -7,10 +7,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from signalflow import SfTorchModuleMixin, sf_component
+from signalflow import SfTorchModuleMixin
+from signalflow.core import register
 
 
-@sf_component(name="head/soft/distribution")
+@register("head/soft/distribution")
 class DistributionHead(nn.Module, SfTorchModuleMixin):
     """Predicts probability distribution over classes (soft labels).
 

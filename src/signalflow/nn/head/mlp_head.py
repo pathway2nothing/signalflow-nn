@@ -5,10 +5,11 @@ from typing import Literal
 import torch
 import torch.nn as nn
 
-from signalflow import SfTorchModuleMixin, sf_component
+from signalflow import SfTorchModuleMixin
+from signalflow.core import register
 
 
-@sf_component(name="head/cls/mlp")
+@register("head/cls/mlp")
 class MLPClassifierHead(nn.Module, SfTorchModuleMixin):
     """Multi-layer perceptron classification head.
 

@@ -11,7 +11,8 @@ of sinusoidal/learnable positional embeddings.
 import torch
 import torch.nn as nn
 
-from signalflow import SfTorchModuleMixin, sf_component
+from signalflow import SfTorchModuleMixin
+from signalflow.core import feature
 
 
 class ConvPositionalEncoding(nn.Module):
@@ -116,7 +117,7 @@ class ConvTranBlock(nn.Module):
         return x
 
 
-@sf_component(name="encoder/convtran")
+@feature("encoder/convtran")
 class ConvTranEncoder(nn.Module, SfTorchModuleMixin):
     """ConvTran encoder for sequence processing.
 

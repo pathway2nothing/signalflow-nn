@@ -8,7 +8,8 @@ self-attention for token mixing.
 import torch
 import torch.nn as nn
 
-from signalflow import SfTorchModuleMixin, sf_component
+from signalflow import SfTorchModuleMixin
+from signalflow.core import feature
 
 
 class SpatialGatingUnit(nn.Module):
@@ -98,7 +99,7 @@ class gMLPBlock(nn.Module):
         return x + residual
 
 
-@sf_component(name="encoder/gmlp")
+@feature("encoder/gmlp")
 class gMLPEncoder(nn.Module, SfTorchModuleMixin):
     """gMLP encoder for sequence processing.
 

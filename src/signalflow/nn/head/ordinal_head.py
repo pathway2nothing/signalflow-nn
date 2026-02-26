@@ -5,10 +5,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from signalflow import SfTorchModuleMixin, sf_component
+from signalflow import SfTorchModuleMixin
+from signalflow.core import register
 
 
-@sf_component(name="head/soft/ordinal")
+@register("head/soft/ordinal")
 class OrdinalRegressionHead(nn.Module, SfTorchModuleMixin):
     """Ordinal regression head for ordered classes.
 

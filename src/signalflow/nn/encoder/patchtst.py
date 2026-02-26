@@ -8,7 +8,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from signalflow import SfTorchModuleMixin, sf_component
+from signalflow import SfTorchModuleMixin
+from signalflow.core import feature
 
 
 class PatchEmbedding(nn.Module):
@@ -45,7 +46,7 @@ class PatchEmbedding(nn.Module):
         return self.projection(patches)  # [batch, num_patches, d_model]
 
 
-@sf_component(name="encoder/patchtst")
+@feature("encoder/patchtst")
 class PatchTSTEncoder(nn.Module, SfTorchModuleMixin):
     """Patch-based Time Series Transformer encoder.
 
