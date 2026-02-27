@@ -1,9 +1,9 @@
 # signalflow.nn/heads/residual_head.py
 import torch
 import torch.nn as nn
+from signalflow.core import register
 
 from signalflow import SfTorchModuleMixin
-from signalflow.core import register
 
 
 class ResidualBlock(nn.Module):

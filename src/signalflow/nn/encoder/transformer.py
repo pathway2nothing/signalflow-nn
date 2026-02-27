@@ -4,9 +4,9 @@ import math
 
 import torch
 import torch.nn as nn
+from signalflow.core import feature
 
 from signalflow import SfTorchModuleMixin
-from signalflow.core import feature
 
 
 class SinusoidalPositionalEncoding(nn.Module):

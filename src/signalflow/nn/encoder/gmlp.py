@@ -7,9 +7,9 @@ self-attention for token mixing.
 
 import torch
 import torch.nn as nn
+from signalflow.core import feature
 
 from signalflow import SfTorchModuleMixin
-from signalflow.core import feature
 
 
 class SpatialGatingUnit(nn.Module):

@@ -6,9 +6,9 @@ Time Series Classification" (2019). arXiv:1909.04939.
 
 import torch
 import torch.nn as nn
+from signalflow.core import feature
 
 from signalflow import SfTorchModuleMixin
-from signalflow.core import feature
 
 
 class InceptionModule(nn.Module):

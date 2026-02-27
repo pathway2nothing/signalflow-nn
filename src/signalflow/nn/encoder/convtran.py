@@ -10,9 +10,9 @@ of sinusoidal/learnable positional embeddings.
 
 import torch
 import torch.nn as nn
+from signalflow.core import feature
 
 from signalflow import SfTorchModuleMixin
-from signalflow.core import feature
 
 
 class ConvPositionalEncoding(nn.Module):

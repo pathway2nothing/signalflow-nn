@@ -2,9 +2,9 @@
 
 import torch
 import torch.nn as nn
+from signalflow.core import feature
 
 from signalflow import SfTorchModuleMixin
-from signalflow.core import feature
 
 
 @feature("encoder/conv1d")

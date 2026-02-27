@@ -9,9 +9,9 @@ from typing import Any, Literal
 import lightning as L
 import torch
 import torch.nn as nn
+from signalflow.core import register
 
 from signalflow import SfComponentType, SfTorchModuleMixin, default_registry
-from signalflow.core import register
 
 
 @dataclass

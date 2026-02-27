@@ -7,9 +7,9 @@ ICLR 2022.
 
 import torch
 import torch.nn as nn
+from signalflow.core import feature
 
 from signalflow import SfTorchModuleMixin
-from signalflow.core import feature
 
 
 class OmniScaleBlock(nn.Module):

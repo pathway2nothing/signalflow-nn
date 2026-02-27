@@ -6,9 +6,9 @@ and Recurrent Networks for Sequence Modeling" (2018).
 
 import torch
 import torch.nn as nn
+from signalflow.core import feature
 
 from signalflow import SfTorchModuleMixin
-from signalflow.core import feature
 
 
 class Chomp1d(nn.Module):

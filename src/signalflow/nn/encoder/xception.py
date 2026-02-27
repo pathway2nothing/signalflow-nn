@@ -7,9 +7,9 @@ Adapted from Chollet "Xception" (2017) for 1D time series.
 
 import torch
 import torch.nn as nn
+from signalflow.core import feature
 
 from signalflow import SfTorchModuleMixin
-from signalflow.core import feature
 
 
 class SeparableConv1d(nn.Module):

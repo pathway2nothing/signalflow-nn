@@ -4,9 +4,9 @@ from typing import Literal
 
 import torch
 import torch.nn as nn
+from signalflow.core import register
 
 from signalflow import SfTorchModuleMixin
-from signalflow.core import register
 
 
 @register("head/cls/mlp")
