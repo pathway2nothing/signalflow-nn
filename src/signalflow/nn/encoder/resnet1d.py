@@ -6,7 +6,7 @@ Adapted from: He et al. "Deep Residual Learning for Image Recognition"
 
 import torch
 import torch.nn as nn
-from signalflow.core import feature
+from signalflow.core import register
 
 from signalflow import SfTorchModuleMixin
 
@@ -60,7 +60,7 @@ class ResidualBlock1d(nn.Module):
         return out
 
 
-@feature("encoder/resnet1d")
+@register("encoder/resnet1d")
 class ResNet1dEncoder(nn.Module, SfTorchModuleMixin):
     """ResNet-1D encoder for sequence processing.
 

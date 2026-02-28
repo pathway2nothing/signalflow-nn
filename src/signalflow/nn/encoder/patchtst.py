@@ -7,7 +7,7 @@ Forecasting with Transformers" (2023). arXiv:2211.14730.
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from signalflow.core import feature
+from signalflow.core import register
 
 from signalflow import SfTorchModuleMixin
 
@@ -46,7 +46,7 @@ class PatchEmbedding(nn.Module):
         return self.projection(patches)  # [batch, num_patches, d_model]
 
 
-@feature("encoder/patchtst")
+@register("encoder/patchtst")
 class PatchTSTEncoder(nn.Module, SfTorchModuleMixin):
     """Patch-based Time Series Transformer encoder.
 

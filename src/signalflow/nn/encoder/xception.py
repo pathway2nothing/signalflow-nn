@@ -7,7 +7,7 @@ Adapted from Chollet "Xception" (2017) for 1D time series.
 
 import torch
 import torch.nn as nn
-from signalflow.core import feature
+from signalflow.core import register
 
 from signalflow import SfTorchModuleMixin
 
@@ -94,7 +94,7 @@ class XceptionBlock(nn.Module):
         return out
 
 
-@feature("encoder/xception")
+@register("encoder/xception")
 class XceptionTimeEncoder(nn.Module, SfTorchModuleMixin):
     """XceptionTime encoder for sequence processing.
 

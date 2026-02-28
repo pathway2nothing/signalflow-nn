@@ -4,7 +4,7 @@ import math
 
 import torch
 import torch.nn as nn
-from signalflow.core import feature
+from signalflow.core import register
 
 from signalflow import SfTorchModuleMixin
 
@@ -28,7 +28,7 @@ class SinusoidalPositionalEncoding(nn.Module):
         return self.dropout(x)
 
 
-@feature("encoder/transformer")
+@register("encoder/transformer")
 class TransformerEncoder(nn.Module, SfTorchModuleMixin):
     """Transformer encoder for sequence processing.
 

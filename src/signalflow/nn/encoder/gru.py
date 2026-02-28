@@ -2,12 +2,12 @@
 
 import torch
 import torch.nn as nn
-from signalflow.core import feature
+from signalflow.core import register
 
 from signalflow import SfTorchModuleMixin
 
 
-@feature("encoder/gru")
+@register("encoder/gru")
 class GRUEncoder(nn.Module, SfTorchModuleMixin):
     """GRU encoder for sequence processing.
 

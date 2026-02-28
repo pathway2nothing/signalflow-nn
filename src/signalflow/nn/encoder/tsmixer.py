@@ -6,7 +6,7 @@ Forecasting" (2023). arXiv:2303.06053.
 
 import torch
 import torch.nn as nn
-from signalflow.core import feature
+from signalflow.core import register
 
 from signalflow import SfTorchModuleMixin
 
@@ -75,7 +75,7 @@ class MixerBlock(nn.Module):
         return x
 
 
-@feature("encoder/tsmixer")
+@register("encoder/tsmixer")
 class TSMixerEncoder(nn.Module, SfTorchModuleMixin):
     """TSMixer encoder for sequence processing.
 

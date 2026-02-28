@@ -2,12 +2,12 @@
 
 import torch
 import torch.nn as nn
-from signalflow.core import feature
+from signalflow.core import register
 
 from signalflow import SfTorchModuleMixin
 
 
-@feature("encoder/conv1d")
+@register("encoder/conv1d")
 class Conv1dEncoder(nn.Module, SfTorchModuleMixin):
     """Stacked 1D convolutional encoder for sequence processing.
 

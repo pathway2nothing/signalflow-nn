@@ -2,12 +2,12 @@
 
 import torch
 import torch.nn as nn
-from signalflow.core import feature
+from signalflow.core import register
 
 from signalflow import SfTorchModuleMixin
 
 
-@feature("encoder/lstm")
+@register("encoder/lstm")
 class LSTMEncoder(nn.Module, SfTorchModuleMixin):
     """LSTM encoder for sequence processing.
 

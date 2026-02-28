@@ -12,7 +12,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from signalflow.core import feature
+from signalflow.core import register
 
 from signalflow import SfTorchModuleMixin
 
@@ -228,7 +228,7 @@ class MambaBlock(nn.Module):
         return x + self.dropout(self.mamba(self.norm(x)))
 
 
-@feature("encoder/mamba")
+@register("encoder/mamba")
 class MambaEncoder(nn.Module, SfTorchModuleMixin):
     """Mamba encoder for efficient temporal sequence modeling.
 

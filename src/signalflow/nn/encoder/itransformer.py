@@ -13,7 +13,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from signalflow.core import feature
+from signalflow.core import register
 
 from signalflow import SfTorchModuleMixin
 
@@ -198,7 +198,7 @@ class iTransformerBlock(nn.Module):
         return x
 
 
-@feature("encoder/itransformer")
+@register("encoder/itransformer")
 class iTransformerEncoder(nn.Module, SfTorchModuleMixin):
     """iTransformer encoder for time series classification.
 

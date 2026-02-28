@@ -7,7 +7,7 @@ self-attention for token mixing.
 
 import torch
 import torch.nn as nn
-from signalflow.core import feature
+from signalflow.core import register
 
 from signalflow import SfTorchModuleMixin
 
@@ -99,7 +99,7 @@ class gMLPBlock(nn.Module):
         return x + residual
 
 
-@feature("encoder/gmlp")
+@register("encoder/gmlp")
 class gMLPEncoder(nn.Module, SfTorchModuleMixin):
     """gMLP encoder for sequence processing.
 
