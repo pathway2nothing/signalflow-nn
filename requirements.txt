@@ -1,6 +1,3 @@
-signalflow-trading >= 0.2.6
-pytorch >= 2.2.0
+signalflow-trading >= 0.3.7
+torch >= 2.2.0
 lightning >= 2.5.0
-plotly 
-pyarrow
-kaleido

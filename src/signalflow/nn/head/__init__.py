@@ -11,20 +11,20 @@ All heads follow the interface:
     forward(x: Tensor[batch, input_size]) -> Tensor[batch, num_classes]
 """
 
-from signalflow.nn.head.mlp_head import MLPClassifierHead
-from signalflow.nn.head.linear_head import LinearClassifierHead
-from signalflow.nn.head.residual_head import ResidualClassifierHead
 from signalflow.nn.head.attention_head import AttentionClassifierHead
-from signalflow.nn.head.distribution_head import DistributionHead
-from signalflow.nn.head.ordinal_head import OrdinalRegressionHead
 from signalflow.nn.head.confidence_head import ClassificationWithConfidenceHead
+from signalflow.nn.head.distribution_head import DistributionHead
+from signalflow.nn.head.linear_head import LinearClassifierHead
+from signalflow.nn.head.mlp_head import MLPClassifierHead
+from signalflow.nn.head.ordinal_head import OrdinalRegressionHead
+from signalflow.nn.head.residual_head import ResidualClassifierHead
 
 __all__ = [
-    "MLPClassifierHead",
-    "LinearClassifierHead",
-    "ResidualClassifierHead",
     "AttentionClassifierHead",
-    "DistributionHead",
-    "OrdinalRegressionHead",
     "ClassificationWithConfidenceHead",
+    "DistributionHead",
+    "LinearClassifierHead",
+    "MLPClassifierHead",
+    "OrdinalRegressionHead",
+    "ResidualClassifierHead",
 ]

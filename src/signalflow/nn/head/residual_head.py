@@ -1,16 +1,14 @@
 # signalflow.nn/heads/residual_head.py
-from typing import Literal
-
-import optuna
 import torch
 import torch.nn as nn
+from signalflow.core import register
 
-from signalflow import sf_component, SfTorchModuleMixin
+from signalflow import SfTorchModuleMixin
 
 
 class ResidualBlock(nn.Module):
     """Single residual block: x + MLP(x)."""
-    
+
     def __init__(self, dim: int, dropout: float = 0.2):
         super().__init__()
         self.net = nn.Sequential(
@@ -21,25 +19,25 @@ class ResidualBlock(nn.Module):
             nn.Dropout(dropout),
         )
         self.norm = nn.LayerNorm(dim)
-    
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.norm(x + self.net(x))
 
 
-@sf_component(name="head/cls/residual")
+@register("head/cls/residual")
 class ResidualClassifierHead(nn.Module, SfTorchModuleMixin):
     """Residual MLP classification head.
-    
+
     Uses skip connections for better gradient flow.
     Architecture: Input -> Projection -> ResBlock x N -> Linear(num_classes)
-    
+
     Args:
         input_size: Size of encoder output.
         num_classes: Number of output classes.
         hidden_dim: Hidden dimension (same for all blocks). Default: 128.
         num_blocks: Number of residual blocks. Default: 2.
         dropout: Dropout probability. Default: 0.2.
-        
+
     Example:
         >>> head = ResidualClassifierHead(
         ...     input_size=256,
@@ -50,7 +48,7 @@ class ResidualClassifierHead(nn.Module, SfTorchModuleMixin):
         >>> x = torch.randn(32, 256)
         >>> logits = head(x)  # [32, 3]
     """
-    
+
     def __init__(
         self,
         input_size: int,
@@ -61,29 +59,22 @@ class ResidualClassifierHead(nn.Module, SfTorchModuleMixin):
         **kwargs,
     ):
         super().__init__()
-        
+
         self.input_size = input_size
         self.num_classes = num_classes
-        
-        self.input_proj = (
-            nn.Linear(input_size, hidden_dim) 
-            if input_size != hidden_dim 
-            else nn.Identity()
-        )
-        
-        self.blocks = nn.ModuleList([
-            ResidualBlock(hidden_dim, dropout) 
-            for _ in range(num_blocks)
-        ])
-        
+
+        self.input_proj = nn.Linear(input_size, hidden_dim) if input_size != hidden_dim else nn.Identity()
+
+        self.blocks = nn.ModuleList([ResidualBlock(hidden_dim, dropout) for _ in range(num_blocks)])
+
         self.output = nn.Linear(hidden_dim, num_classes)
-    
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass.
-        
+
         Args:
             x: Input tensor [batch, input_size].
-            
+
         Returns:
             Logits tensor [batch, num_classes].
         """
@@ -91,7 +82,7 @@ class ResidualClassifierHead(nn.Module, SfTorchModuleMixin):
         for block in self.blocks:
             x = block(x)
         return self.output(x)
-    
+
     @classmethod
     def default_params(cls) -> dict:
         """Default parameters."""
@@ -100,20 +91,20 @@ class ResidualClassifierHead(nn.Module, SfTorchModuleMixin):
             "num_blocks": 2,
             "dropout": 0.2,
         }
-    
+
     @classmethod
-    def tune(cls, trial: optuna.Trial, model_size: Literal["small", "medium", "large"] = "small") -> dict:
-        """Optuna hyperparameter search space."""
+    def search_space(cls, model_size: str = "small") -> dict:
+        """Hyperparameter search space."""
         size_config = {
             "small": {"dim_range": (64, 128), "blocks_range": (1, 2)},
             "medium": {"dim_range": (128, 256), "blocks_range": (2, 3)},
             "large": {"dim_range": (256, 512), "blocks_range": (2, 4)},
         }
-        
+
         config = size_config[model_size]
-        
+
         return {
-            "hidden_dim": trial.suggest_int("head_hidden_dim", *config["dim_range"]),
-            "num_blocks": trial.suggest_int("head_num_blocks", *config["blocks_range"]),
-            "dropout": trial.suggest_float("head_dropout", 0.1, 0.4),
+            "hidden_dim": {"type": "int", "low": config["dim_range"][0], "high": config["dim_range"][1]},
+            "num_blocks": {"type": "int", "low": config["blocks_range"][0], "high": config["blocks_range"][1]},
+            "dropout": {"type": "float", "low": 0.1, "high": 0.4},
         }

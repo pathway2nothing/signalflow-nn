@@ -4,14 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "signalflow-nn"
-version = "0.2.6"
+version = "0.6.0"
 description = "Neural network extension for signalflow (torch/lightning)."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-  "signalflow-trading>=0.2.6",
+  "signalflow-trading>=0.6.0",
   "torch>=2.2",
   "lightning>=2.5",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=8.0",
+  "ruff>=0.8",
 ]
 
 [tool.setuptools]
@@ -20,3 +26,17 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["signalflow.nn*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
